@@ -1,0 +1,909 @@
+openapi: 3.0.0
+info:
+  title: api/rewe_complete Mitmproxy2Swagger
+  version: 1.0.0
+servers:
+- url: https://account.rewe.de
+  description: The default server
+paths:
+  /realms/sso/.well-known/openid-configuration:
+    get:
+      summary: GET openid-configuration
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  issuer:
+                    type: string
+                  authorization_endpoint:
+                    type: string
+                  token_endpoint:
+                    type: string
+                  introspection_endpoint:
+                    type: string
+                  userinfo_endpoint:
+                    type: string
+                  end_session_endpoint:
+                    type: string
+                  frontchannel_logout_session_supported:
+                    type: boolean
+                  frontchannel_logout_supported:
+                    type: boolean
+                  jwks_uri:
+                    type: string
+                  check_session_iframe:
+                    type: string
+                  grant_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  acr_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  response_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  subject_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  prompt_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  id_token_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  id_token_encryption_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  id_token_encryption_enc_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  userinfo_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  userinfo_encryption_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  userinfo_encryption_enc_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  request_object_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  request_object_encryption_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  request_object_encryption_enc_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  response_modes_supported:
+                    type: array
+                    items:
+                      type: string
+                  registration_endpoint:
+                    type: string
+                  token_endpoint_auth_methods_supported:
+                    type: array
+                    items:
+                      type: string
+                  token_endpoint_auth_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  introspection_endpoint_auth_methods_supported:
+                    type: array
+                    items:
+                      type: string
+                  introspection_endpoint_auth_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  authorization_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  authorization_encryption_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  authorization_encryption_enc_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  claims_supported:
+                    type: array
+                    items:
+                      type: string
+                  claim_types_supported:
+                    type: array
+                    items:
+                      type: string
+                  claims_parameter_supported:
+                    type: boolean
+                  scopes_supported:
+                    type: array
+                    items:
+                      type: string
+                  request_parameter_supported:
+                    type: boolean
+                  request_uri_parameter_supported:
+                    type: boolean
+                  require_request_uri_registration:
+                    type: boolean
+                  code_challenge_methods_supported:
+                    type: array
+                    items:
+                      type: string
+                  tls_client_certificate_bound_access_tokens:
+                    type: boolean
+                  dpop_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  revocation_endpoint:
+                    type: string
+                  revocation_endpoint_auth_methods_supported:
+                    type: array
+                    items:
+                      type: string
+                  revocation_endpoint_auth_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  backchannel_logout_supported:
+                    type: boolean
+                  backchannel_logout_session_supported:
+                    type: boolean
+                  device_authorization_endpoint:
+                    type: string
+                  backchannel_token_delivery_modes_supported:
+                    type: array
+                    items:
+                      type: string
+                  backchannel_authentication_endpoint:
+                    type: string
+                  backchannel_authentication_request_signing_alg_values_supported:
+                    type: array
+                    items:
+                      type: string
+                  require_pushed_authorization_requests:
+                    type: boolean
+                  pushed_authorization_request_endpoint:
+                    type: string
+                  mtls_endpoint_aliases:
+                    type: object
+                    properties:
+                      token_endpoint:
+                        type: string
+                      revocation_endpoint:
+                        type: string
+                      introspection_endpoint:
+                        type: string
+                      device_authorization_endpoint:
+                        type: string
+                      registration_endpoint:
+                        type: string
+                      userinfo_endpoint:
+                        type: string
+                      pushed_authorization_request_endpoint:
+                        type: string
+                      backchannel_authentication_endpoint:
+                        type: string
+                  authorization_response_iss_parameter_supported:
+                    type: boolean
+              example:
+                issuer: https://account.rewe.de/realms/sso
+                authorization_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/auth
+                token_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/token
+                introspection_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/token/introspect
+                userinfo_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/userinfo
+                end_session_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/logout
+                frontchannel_logout_session_supported: true
+                frontchannel_logout_supported: true
+                jwks_uri: https://account.rewe.de/realms/sso/protocol/openid-connect/certs
+                check_session_iframe: 
+                  https://account.rewe.de/realms/sso/protocol/openid-connect/login-status-iframe.html
+                grant_types_supported:
+                - authorization_code
+                - client_credentials
+                - implicit
+                - password
+                - refresh_token
+                - urn:ietf:params:oauth:grant-type:device_code
+                - urn:ietf:params:oauth:grant-type:token-exchange
+                - urn:ietf:params:oauth:grant-type:uma-ticket
+                - urn:openid:params:grant-type:ciba
+                acr_values_supported:
+                - '0'
+                - '1'
+                response_types_supported:
+                - code
+                - none
+                - id_token
+                - token
+                - id_token token
+                - code id_token
+                - code token
+                - code id_token token
+                subject_types_supported:
+                - public
+                - pairwise
+                prompt_values_supported:
+                - none
+                - login
+                - consent
+                - create
+                id_token_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - HS256
+                - HS512
+                - ES256
+                - RS256
+                - HS384
+                - ES512
+                id_token_encryption_alg_values_supported:
+                - ECDH-ES+A256KW
+                - ECDH-ES+A192KW
+                - ECDH-ES+A128KW
+                - RSA-OAEP
+                - RSA-OAEP-256
+                - RSA1_5
+                - ECDH-ES
+                id_token_encryption_enc_values_supported:
+                - A256GCM
+                - A192GCM
+                - A128GCM
+                - A128CBC-HS256
+                - A192CBC-HS384
+                - A256CBC-HS512
+                userinfo_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - HS256
+                - HS512
+                - ES256
+                - RS256
+                - HS384
+                - ES512
+                userinfo_encryption_alg_values_supported:
+                - ECDH-ES+A256KW
+                - ECDH-ES+A192KW
+                - ECDH-ES+A128KW
+                - RSA-OAEP
+                - RSA-OAEP-256
+                - RSA1_5
+                - ECDH-ES
+                userinfo_encryption_enc_values_supported:
+                - A256GCM
+                - A192GCM
+                - A128GCM
+                - A128CBC-HS256
+                - A192CBC-HS384
+                - A256CBC-HS512
+                request_object_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - HS256
+                - HS512
+                - ES256
+                - RS256
+                - HS384
+                - ES512
+                request_object_encryption_alg_values_supported:
+                - ECDH-ES+A256KW
+                - ECDH-ES+A192KW
+                - ECDH-ES+A128KW
+                - RSA-OAEP
+                - RSA-OAEP-256
+                - RSA1_5
+                - ECDH-ES
+                request_object_encryption_enc_values_supported:
+                - A256GCM
+                - A192GCM
+                - A128GCM
+                - A128CBC-HS256
+                - A192CBC-HS384
+                - A256CBC-HS512
+                response_modes_supported:
+                - query
+                - fragment
+                - form_post
+                - query.jwt
+                - fragment.jwt
+                - form_post.jwt
+                - jwt
+                registration_endpoint: https://account.rewe.de/realms/sso/clients-registrations/openid-connect
+                token_endpoint_auth_methods_supported:
+                - private_key_jwt
+                - client_secret_basic
+                - client_secret_post
+                - tls_client_auth
+                - client_secret_jwt
+                token_endpoint_auth_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - HS256
+                - HS512
+                - ES256
+                - RS256
+                - HS384
+                - ES512
+                introspection_endpoint_auth_methods_supported:
+                - private_key_jwt
+                - client_secret_basic
+                - client_secret_post
+                - tls_client_auth
+                - client_secret_jwt
+                introspection_endpoint_auth_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - HS256
+                - HS512
+                - ES256
+                - RS256
+                - HS384
+                - ES512
+                authorization_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - HS256
+                - HS512
+                - ES256
+                - RS256
+                - HS384
+                - ES512
+                authorization_encryption_alg_values_supported:
+                - ECDH-ES+A256KW
+                - ECDH-ES+A192KW
+                - ECDH-ES+A128KW
+                - RSA-OAEP
+                - RSA-OAEP-256
+                - RSA1_5
+                - ECDH-ES
+                authorization_encryption_enc_values_supported:
+                - A256GCM
+                - A192GCM
+                - A128GCM
+                - A128CBC-HS256
+                - A192CBC-HS384
+                - A256CBC-HS512
+                claims_supported:
+                - iss
+                - sub
+                - aud
+                - exp
+                - iat
+                - auth_time
+                - name
+                - given_name
+                - family_name
+                - preferred_username
+                claim_types_supported:
+                - normal
+                claims_parameter_supported: true
+                scopes_supported:
+                - openid
+                - customer
+                - email
+                - address
+                - web-origins
+                - offline_access
+                - roles
+                - basic
+                - service_account
+                - phone
+                request_parameter_supported: true
+                request_uri_parameter_supported: true
+                require_request_uri_registration: true
+                code_challenge_methods_supported:
+                - plain
+                - S256
+                tls_client_certificate_bound_access_tokens: true
+                dpop_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - ES256
+                - RS256
+                - ES512
+                - PS256
+                - PS512
+                - RS512
+                revocation_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/revoke
+                revocation_endpoint_auth_methods_supported:
+                - private_key_jwt
+                - client_secret_basic
+                - client_secret_post
+                - tls_client_auth
+                - client_secret_jwt
+                revocation_endpoint_auth_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - HS256
+                - HS512
+                - ES256
+                - RS256
+                - HS384
+                - ES512
+                backchannel_logout_supported: true
+                backchannel_logout_session_supported: true
+                device_authorization_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/auth/device
+                backchannel_token_delivery_modes_supported:
+                - poll
+                - ping
+                backchannel_authentication_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/ext/ciba/auth
+                backchannel_authentication_request_signing_alg_values_supported:
+                - PS384
+                - RS384
+                - EdDSA
+                - ES384
+                - ES256
+                - RS256
+                - ES512
+                - PS256
+                - PS512
+                - RS512
+                require_pushed_authorization_requests: false
+                pushed_authorization_request_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/ext/par/request
+                mtls_endpoint_aliases:
+                  token_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/token
+                  revocation_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/revoke
+                  introspection_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/token/introspect
+                  device_authorization_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/auth/device
+                  registration_endpoint: https://account.rewe.de/realms/sso/clients-registrations/openid-connect
+                  userinfo_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/userinfo
+                  pushed_authorization_request_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/ext/par/request
+                  backchannel_authentication_endpoint: https://account.rewe.de/realms/sso/protocol/openid-connect/ext/ciba/auth
+                authorization_response_iss_parameter_supported: true
+          headers:
+            date:
+              description: Tue, 24 Mar 2026 19:16:09 GMT
+              schema:
+                type: string
+            content-type:
+              description: application/json
+              schema:
+                type: string
+            content-length:
+              description: '6538'
+              schema:
+                type: number
+            cf-ray:
+              description: 9e1802396e238fec-FRA
+              schema:
+                type: string
+            cache-control:
+              description: no-cache, must-revalidate, no-transform, no-store
+              schema:
+                type: string
+            referrer-policy:
+              description: no-referrer
+              schema:
+                type: string
+            strict-transport-security:
+              description: max-age=15552000
+              schema:
+                type: string
+            x-content-type-options:
+              description: nosniff
+              schema:
+                type: string
+            x-frame-options:
+              description: ALLOW-FROM https://www.google.com
+              schema:
+                type: string
+            x-robots-tag:
+              description: none
+              schema:
+                type: string
+            accept-ranges:
+              description: bytes
+              schema:
+                type: string
+            last-modified:
+              description: Tue, 24 Mar 2026 17:29:52 GMT
+              schema:
+                type: string
+            age:
+              description: '6377'
+              schema:
+                type: number
+            cf-cache-status:
+              description: HIT
+              schema:
+                type: string
+            vary:
+              description: Accept-Encoding
+              schema:
+                type: string
+            server:
+              description: cloudflare
+              schema:
+                type: string
+            alt-svc:
+              description: h3=":443"; ma=86400
+              schema:
+                type: string
+      parameters:
+      - name: cookie
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: user-agent
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: priority
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-language
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-encoding
+        in: header
+        required: false
+        schema:
+          type: string
+  /realms/sso/protocol/openid-connect/auth:
+    get:
+      summary: GET auth
+      responses:
+        '200':
+          description: OK
+          content: {}
+      parameters:
+      - name: sec-fetch-dest
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: user-agent
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: sec-fetch-site
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: sec-fetch-mode
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-language
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: priority
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-encoding
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: cookie
+        in: header
+        required: false
+        schema:
+          type: string
+  /realms/sso/login-actions/authenticate:
+    post:
+      summary: POST authenticate
+      responses:
+        '200':
+          description: OK
+          content: {}
+      parameters:
+      - name: accept
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: content-type
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: sec-fetch-site
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: origin
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: sec-fetch-mode
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: user-agent
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: content-length
+        in: header
+        required: false
+        schema:
+          type: number
+      - name: sec-fetch-dest
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-language
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: priority
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-encoding
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: cookie
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                rememberMe:
+                  type: string
+                cf-turnstile-response:
+                  type: string
+                cf-turnstile-error:
+                  type: string
+                credentialId:
+                  type: string
+                login:
+                  type: string
+            example:
+              username: rrrrrrrrrrrrrrrrrrrrrrrr
+              password: rrrrrrrrrrrrrr
+              rememberMe: on
+              cf-turnstile-response: REDACTED_TURNSTILE_TOKEN
+              cf-turnstile-error: ''
+              credentialId: ''
+              login: ''
+  /realms/sso/protocol/openid-connect/token:
+    post:
+      summary: POST token
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  expires_in:
+                    type: number
+                  refresh_expires_in:
+                    type: number
+                  refresh_token:
+                    type: string
+                  token_type:
+                    type: string
+                  id_token:
+                    type: string
+                  not-before-policy:
+                    type: number
+                  session_state:
+                    type: string
+                  scope:
+                    type: string
+              example:
+                access_token: 
+                  rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+                expires_in: 600
+                refresh_expires_in: 0
+                refresh_token: 
+                  rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+                token_type: Bearer
+                id_token: 
+                  rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr
+                not-before-policy: 0
+                session_state: REDACTED
+                scope: openid email customer offline_access profile
+          headers:
+            date:
+              description: Tue, 24 Mar 2026 19:16:41 GMT
+              schema:
+                type: string
+            content-type:
+              description: application/json
+              schema:
+                type: string
+            content-encoding:
+              description: br
+              schema:
+                type: string
+            cache-control:
+              description: no-store
+              schema:
+                type: string
+            pragma:
+              description: no-cache
+              schema:
+                type: string
+            referrer-policy:
+              description: no-referrer
+              schema:
+                type: string
+            strict-transport-security:
+              description: max-age=15552000
+              schema:
+                type: string
+            x-content-type-options:
+              description: nosniff
+              schema:
+                type: string
+            x-frame-options:
+              description: ALLOW-FROM https://www.google.com
+              schema:
+                type: string
+            x-robots-tag:
+              description: none
+              schema:
+                type: string
+            cf-cache-status:
+              description: DYNAMIC
+              schema:
+                type: string
+            server:
+              description: cloudflare
+              schema:
+                type: string
+            cf-ray:
+              description: 9e1803011d278fec-FRA
+              schema:
+                type: string
+            alt-svc:
+              description: h3=":443"; ma=86400
+              schema:
+                type: string
+      parameters:
+      - name: accept
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: content-type
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: cookie
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-language
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: accept-encoding
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: user-agent
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: priority
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: content-length
+        in: header
+        required: false
+        schema:
+          type: number
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                code_verifier:
+                  type: string
+                redirect_uri:
+                  type: string
+                client_id:
+                  type: string
+                grant_type:
+                  type: string
+            example:
+              code: REDACTED_AUTH_CODE
+              code_verifier: REDACTED_PKCE_VERIFIER
+              redirect_uri: de.rewe.app://redirect
+              client_id: reweios
+              grant_type: authorization_code
+x-path-templates:
+# Remove the ignore: prefix to generate an endpoint with its URL
+# Lines that are closer to the top take precedence, the matching is greedy
+- ignore:/cdn-cgi/challenge-platform/h/g/jsd/oneshot/ea2d291c0fdc/0.7088364578332287:1774377415:13QlD6HMbJFesX8pfjqNyTuCgLHd2KXIYafR6hHMzcI/9e1802535b350d18
+- ignore:/cdn-cgi/challenge-platform/h/g/scripts/jsd/ea2d291c0fdc/main.js
+- ignore:/cdn-cgi/challenge-platform/scripts/jsd/main.js
+- ignore:/resources/r359t/common/keycloak/vendor/rfc4648/rfc4648.js
+- ignore:/resources/r359t/login/keycloakify-rewe-app/js/webauthn-login.js

@@ -1,0 +1,172 @@
+{
+  "products": [
+  {
+    "articleId": "MR5NCSHZ",
+    "imageURL": "https://img.rewe-static.de/9891941/48587612_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-MR5NCSHZ-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9891941",
+    "title": "Milka Schokolade Alpenmilch 90g"
+  },
+  {
+    "articleId": "B5Y53AXJ",
+    "imageURL": "https://img.rewe-static.de/9892046/48839972_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-B5Y53AXJ-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9892046",
+    "title": "Milka Schokolade Kuhflecken 90g"
+  },
+  {
+    "articleId": "ISBAEVUM",
+    "imageURL": "https://img.rewe-static.de/8171145/48587607_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-ISBAEVUM-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "8171145",
+    "title": "Milka Noisette 90g"
+  },
+  {
+    "articleId": "WECRUWQO",
+    "imageURL": "https://img.rewe-static.de/9179360/46941717_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 329,
+      "grammage": "90g (1 kg = 36,56 €)",
+      "listingId": "8-WECRUWQO-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9179360",
+    "title": "Milka Feine Eier Nougat-Creme 90g"
+  },
+  {
+    "articleId": "TWAZWGYM",
+    "imageURL": "https://img.rewe-static.de/9891647/48839924_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-TWAZWGYM-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9891647",
+    "title": "Milka Schokolade Luflée Alpenmilch 90g"
+  },
+  {
+    "articleId": "OFOHECKI",
+    "imageURL": "https://img.rewe-static.de/9882050/48839952_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-OFOHECKI-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9882050",
+    "title": "Milka Schokolade Zartherb 90g"
+  },
+  {
+    "articleId": "08LGTFIO",
+    "imageURL": "https://img.rewe-static.de/9892643/48839934_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-08LGTFIO-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9892643",
+    "title": "Milka Schokolade Haselnuss 90g"
+  },
+  {
+    "articleId": "GSQLSAZV",
+    "imageURL": "https://img.rewe-static.de/7317466/53775614_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-GSQLSAZV-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "7317466",
+    "title": "Milka Biscoff 90g"
+  },
+  {
+    "articleId": "7622210820310",
+    "imageURL": "https://img.rewe-static.de/7285012/28108035_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "13-7622210820310-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "7285012",
+    "title": "Milka Schokolade Erdnuss Crisp 90g"
+  },
+  {
+    "articleId": "1RDXPK8H",
+    "imageURL": "https://img.rewe-static.de/9891949/48839910_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 199,
+      "grammage": "90g (1 kg = 22,11 €)",
+      "listingId": "8-1RDXPK8H-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9891949",
+    "title": "Milka Trauben-Nuss 90g"
+  },
+  {
+    "articleId": "7622210584342",
+    "imageURL": "https://img.rewe-static.de/8063551/29814499_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 329,
+      "grammage": "90g (1 kg = 36,56 €)",
+      "listingId": "13-7622210584342-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 35,
+    "productId": "8063551",
+    "title": "Milka Schmunzelhase Alpenmilch 90g"
+  },
+  {
+    "articleId": "7VOLWVAW",
+    "imageURL": "https://img.rewe-static.de/9077365/46941720_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 329,
+      "grammage": "90g (1 kg = 36,56 €)",
+      "listingId": "8-7VOLWVAW-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9077365",
+    "title": "Milka Alpenmilch Schokoladeneier 90g"
+  },
+  {
+    "articleId": "JVTV8FPM",
+    "imageURL": "https://img.rewe-static.de/8650437/33736211_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 329,
+      "grammage": "90g (1 kg = 36,56 €)",
+      "listingId": "8-JVTV8FPM-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "8650437",
+    "title": "Milka Schmunzelhase Alpenmilch 90g"
+  },
+  {
+    "articleId": "HD6FFP2Q",
+    "imageURL": "https://img.rewe-static.de/9554755/54583764_digital-image.png",
+    "listing": {
+      "currentRetailPrice": 329,
+      "grammage": "90g (1 kg = 36,56 €)",
+      "listingId": "8-HD6FFP2Q-24ce1f7a-1949-3376-b5f4-9bda28dd299d"
+    },
+    "orderLimit": 99,
+    "productId": "9554755",
+    "title": "Milka Karamellige Nougat Cremé Eier 90g"
+  }
+]
+}

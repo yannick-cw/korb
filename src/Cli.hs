@@ -1,0 +1,274 @@
+module Cli where
+
+import Control.Monad.IO.Class (liftIO)
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Text
+import Data.UUID qualified as UUID
+import Data.Void (Void)
+import Errors (IOE)
+import Options.Applicative
+import Options.Applicative.Help (Doc, vsep)
+import ReweApi.Types (
+  Item (..),
+  ItemId (..),
+  ListingId (..),
+  OrderId (..),
+  ProductId (ProductId),
+  Qty (..),
+  SearchAttribute (..),
+  TimeslotId (..),
+ )
+
+newtype ZipCode = ZipCode Text deriving (Show, ToJSON, FromJSON)
+newtype WwIdent = WwIdent Text deriving (Show, ToJSON, FromJSON)
+data Input = Input {cmd :: Command, pretty :: Bool}
+data StoreCommand = StoreShow | StoreSearch ZipCode | StoreSet WwIdent ZipCode
+data FavoritesCommand
+  = FavoritesShow
+  | FavoritesFilter Text
+  | FavoritesAdd ListingId ProductId
+  | FavoritesRemove ItemId
+data BasketCommand = BasketShow | BasketAdd Item
+data CheckoutCommand = GetCheckout | StartCheckout TimeslotId | PlaceOrder
+data OrderCommand = DeleteOrder OrderId | GetOrders
+data Command
+  = Store StoreCommand
+  | Search Text [SearchAttribute]
+  | Login
+  | Slots
+  | Favorites FavoritesCommand
+  | Basket BasketCommand
+  | Checkout CheckoutCommand
+  | Order OrderCommand
+
+favoritesAddParser :: Parser FavoritesCommand
+favoritesAddParser =
+  FavoritesAdd
+    <$> argument (ListingId <$> str) (metavar "LISTING_ID")
+    <*> argument (ProductId <$> str) (metavar "PRODUCT_ID")
+
+uuidArg :: (Text -> a) -> String -> String -> Parser a
+uuidArg wrap metaName errMsg = argument (eitherReader parse) (metavar metaName)
+ where
+  parse s = case UUID.fromString s of
+    Just _ -> Right (wrap (pack s))
+    Nothing -> Left errMsg
+
+favoritesRemoveParser :: Parser FavoritesCommand
+favoritesRemoveParser =
+  FavoritesRemove <$> uuidArg ItemId "ITEM_ID" "Invalid item ID (expected UUID format)"
+
+favoritesFilterParser :: Parser FavoritesCommand
+favoritesFilterParser = FavoritesFilter <$> argument str (metavar "QUERY")
+
+favoritesParser :: Parser Command
+favoritesParser =
+  Favorites
+    <$> ( hsubparser
+            ( command
+                "search"
+                (info favoritesFilterParser (progDesc "Filter favorites by name"))
+                <> command
+                  "add"
+                  ( info
+                      favoritesAddParser
+                      (progDesc "Add product to default favorites list by listing ID and product ID")
+                  )
+                <> command
+                  "delete"
+                  ( info
+                      favoritesRemoveParser
+                      (progDesc "Remove item from favorites by item ID")
+                  )
+            )
+            <|> pure FavoritesShow
+        )
+
+storeSearchParser :: Parser StoreCommand
+storeSearchParser = StoreSearch <$> argument (ZipCode <$> str) (metavar "ZIP")
+
+storeSetParser :: Parser StoreCommand
+storeSetParser =
+  StoreSet
+    <$> argument (WwIdent <$> str) (metavar "wwIdent")
+    <*> argument (ZipCode <$> str) (metavar "ZIP")
+
+storeParser :: Parser Command
+storeParser =
+  Store
+    <$> ( hsubparser
+            ( command "search" (info storeSearchParser (progDesc "Find pickup stores near ZIP code"))
+                <> command
+                  "set"
+                  (info storeSetParser (progDesc "Set active store by market ID and ZIP"))
+            )
+            <|> pure StoreShow
+        )
+
+searchAttributeParser :: Parser [SearchAttribute]
+searchAttributeParser =
+  Prelude.concat
+    <$> sequenceA
+      [ flag [] [Organic] (long "organic" <> help "Filter only organic products")
+      , flag [] [Regional] (long "regional" <> help "Filter only regional products")
+      , flag [] [Regional] (long "vegan" <> help "Filter only vegan products")
+      , flag [] [Regional] (long "vegetarian" <> help "Filter only vegetarian products")
+      ]
+
+searchParser :: Parser Command
+searchParser = Search <$> argument str (metavar "QUERY") <*> searchAttributeParser
+
+loginParser :: Parser Command
+loginParser = pure Login
+
+slotsParser :: Parser Command
+slotsParser = pure Slots
+
+checkoutStartParser :: Parser CheckoutCommand
+checkoutStartParser =
+  StartCheckout
+    <$> uuidArg TimeslotId "TIMESLOT_ID" "Invalid timeslot ID (expected UUID, get IDs from korb timeslots)"
+
+checkoutParser :: Parser Command
+checkoutParser =
+  Checkout
+    <$> ( hsubparser
+            ( command
+                "create"
+                ( info
+                    checkoutStartParser
+                    (progDesc "Reserve timeslot, create checkout, and set payment to market pickup")
+                )
+                <> command
+                  "order"
+                  ( info
+                      (pure PlaceOrder)
+                      (progDesc "Confirm and place the order. Timeslot must be attached first")
+                  )
+            )
+            <|> pure GetCheckout
+        )
+
+basketAddParser :: Parser BasketCommand
+basketAddParser =
+  ( (\prodId qty -> BasketAdd $ Item (ListingId prodId) (Qty <$> qty))
+      <$> argument str (metavar "LISTING_ID")
+  )
+    <*> optional
+      ( option
+          auto
+          (long "qty" <> help "Absolute quantity (default: 1). Set 0 to remove")
+      )
+
+basketParser :: Parser Command
+basketParser =
+  Basket
+    <$> ( hsubparser
+            ( command
+                "add"
+                ( info
+                    basketAddParser
+                    (progDesc "Set item quantity by listing ID. Adds if new, overwrites if exists")
+                )
+            )
+            <|> pure BasketShow
+        )
+
+orderDeleteParser :: Parser OrderCommand
+orderDeleteParser = DeleteOrder <$> argument (OrderId <$> str) (metavar "ORDER_ID")
+
+orderParser :: Parser Command
+orderParser =
+  Order
+    <$> ( hsubparser
+            ( command
+                "delete"
+                (info orderDeleteParser (progDesc "Cancel an order by order ID"))
+            )
+            <|> pure GetOrders
+        )
+
+commandParser :: Parser Command
+commandParser =
+  hsubparser $
+    command
+      "store"
+      (info storeParser (progDesc "Show current store (no args), or use 'search'/'set' subcommands"))
+      <> command "search" (info searchParser (progDesc "Search products in the current store"))
+      <> command
+        "favorites"
+        ( info
+            favoritesParser
+            (progDesc "Show all favorites (no args), or use 'search'/'add'/'delete' subcommands")
+        )
+      <> command "login" (info loginParser (progDesc "Authenticate with your REWE account"))
+      <> command
+        "timeslots"
+        (info slotsParser (progDesc "List available pickup timeslots for current store"))
+      <> command
+        "basket"
+        (info basketParser (progDesc "Show current basket (no args), or use 'add' subcommand"))
+      <> command
+        "checkout"
+        ( info
+            checkoutParser
+            (progDesc "Show current checkout (no args), or use 'create'/'order' subcommands")
+        )
+      <> command
+        "orders"
+        (info orderParser (progDesc "Show open orders (no args), or use 'delete' subcommand"))
+
+versionOption :: Parser (a -> a)
+versionOption = infoOption "korb 0.1.0.0" (long "version" <> short 'v' <> help "Show version")
+
+prettyOutput :: Parser Bool
+prettyOutput = switch (long "pretty" <> short 'p' <> help "Pretty JSON output")
+
+opts :: ParserInfo Input
+opts =
+  info
+    (Input <$> commandParser <*> prettyOutput <**> helper <**> versionOption)
+    ( fullDesc
+        <> progDesc "REWE Pickup CLI"
+        <> header "korb - grocery pickup ordering from the terminal"
+        <> footerDoc (Just examples)
+    )
+
+examples :: Doc
+examples =
+  vsep
+    [ "Commands:"
+    , ""
+    , "  korb store                       Show currently selected store"
+    , "  korb store search <ZIP>          Find pickup stores near ZIP code"
+    , "  korb store set <ID> <ZIP>        Set active store by market ID and ZIP"
+    , ""
+    , "  korb search <QUERY>              Search products in current store (use * to browse all)"
+    , "  korb search <Q> --organic        Filter by attribute (--organic, --regional, --vegan, --vegetarian)"
+    , ""
+    , "  korb favorites                   Show all favorite products across all lists"
+    , "  korb favorites search <QUERY>    Filter favorites by name (case-insensitive, substring match)"
+    , "  korb favorites add <LID> <PID>   Add product to default favorites list (listing ID + product ID)"
+    , "  korb favorites delete <ITEM_ID>  Remove item from default favorites list (item ID from favorites)"
+    , ""
+    , "  korb basket                      Show current basket with items, totals, and free pickup status"
+    , "  korb basket add <LISTING_ID>     Set item quantity by listing ID. Overwrites existing quantity."
+    , "                                   --qty N sets absolute quantity. Default 1. Use --qty 0 to remove."
+    , ""
+    , "  korb timeslots                   List available pickup timeslots"
+    , ""
+    , "  korb checkout                    Show the checkout for current basket. Payment is always in market."
+    , "  korb checkout create <TIMESLOT_ID> Create a checkout for a given timeslot id"
+    , "  korb checkout order              Place the order. Timeslot must be attached first."
+    , ""
+    , "  korb orders                      Show open orders"
+    , "  korb orders delete <ORDER_ID>    Cancel an order by order ID - will give 200 on successive calls."
+    , ""
+    , "  korb login                       Authenticate via REWE PKCE browser flow. Stores tokens in Keychain."
+    , ""
+    , "All commands support --pretty for formatted JSON output."
+    , "Output is JSON for agent consumption."
+    ]
+
+parseInput :: IOE Void Input
+parseInput = liftIO $ execParser opts
