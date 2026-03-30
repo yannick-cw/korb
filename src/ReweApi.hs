@@ -30,6 +30,7 @@ import Network.HTTP.Req
 import ReweApi.Types
 import Storage
 
+newtype ObjectsPerPage = ObjectsPerPage Int
 data ReweAuthedApi = ReweAuthedApi
   { getFavourites :: IOE ApiError (ReweResponse FavoritesResponse)
   , addFavourite ::
@@ -46,7 +47,7 @@ data ReweAuthedApi = ReweAuthedApi
   , addPayment :: BasketId -> CheckoutId -> IOE ApiError (ReweResponse CheckoutResponse)
   , confirmOrder :: CheckoutId -> BasketId -> IOE ApiError (ReweResponse CheckoutResponse)
   , postOrder :: CheckoutId -> IOE ApiError (ReweResponse OrderResponse)
-  , getOrders :: IOE ApiError (ReweResponse OrderHistoryResponse)
+  , getOrders :: Maybe ObjectsPerPage -> IOE ApiError (ReweResponse OrderHistoryResponse)
   , getOrder :: OrderId -> IOE ApiError (ReweResponse OrderDetailResponse)
   , deleteOrder :: OrderId -> IOE ApiError (ReweResponse OrderCancelResponse)
   , getEbons :: IOE ApiError (ReweResponse EbonsResponse)
@@ -121,7 +122,9 @@ mkReweAuthedClient (HttpClient{get, post, delete, patch, getBytes}) auth (Curren
             mandatoryHeaders
       , postOrder = \(CheckoutId checkoutId) ->
           post (object []) (apiBase /: "checkouts" /: checkoutId /: "orders") mandatoryHeaders
-      , getOrders = get (apiBase /: "orders" /: "history") mandatoryHeaders
+      , getOrders = \opp ->
+          let pageOpt = maybe mempty (\(ObjectsPerPage c) -> "objectsPerPage" =: c) opp
+           in get (apiBase /: "orders" /: "history") (mandatoryHeaders <> pageOpt)
       , getOrder = \(OrderId orderId) -> get (apiBase /: "orders" /: orderId) mandatoryHeaders
       , deleteOrder = \(OrderId orderId) ->
           delete (apiBase /: "orders" /: orderId) mandatoryHeaders
@@ -221,7 +224,7 @@ getOpenOrders api = do
   isActionable order = any (\sub -> sub.isOpen && any (`elem` ["modify", "cancel"]) sub.orderActions) order.subOrders
 
 getOrderHistory :: ReweAuthedApi -> IOE ApiError [OrderHistoryEntry]
-getOrderHistory ReweAuthedApi{getOrders} = (.data_.orderHistory.orders) <$> getOrders
+getOrderHistory ReweAuthedApi{getOrders} = (.data_.orderHistory.orders) <$> getOrders Nothing
 
 deleteOpenOrder :: ReweAuthedApi -> OrderId -> IOE ApiError OrderCancelResponse
 deleteOpenOrder ReweAuthedApi{deleteOrder} orderId = (.data_) <$> deleteOrder orderId
@@ -239,8 +242,8 @@ ebonReceipt ReweAuthedApi{getReceipt} ebonId filePath = do
   pure $ "Stored receipt to: " <> pack filePath
 
 thresholdSuggestion :: ReweAuthedApi -> NumberOfSuggestions -> IOE ApiError SuggestionResponse
-thresholdSuggestion api@ReweAuthedApi{getPurchasedProducts} (NumberOfSuggestions numSuggest) = do
-  oldOrderEntries <- getOrderHistory api
+thresholdSuggestion api@ReweAuthedApi{getPurchasedProducts, getOrders} (NumberOfSuggestions numSuggest) = do
+  oldOrderEntries <- (.data_.orderHistory.orders) <$> getOrders (Just $ ObjectsPerPage 10) -- limit to max 10 orders
   orderedProductIds <- concat <$> forM oldOrderEntries fetchActualOrder
   let productOrderFrequencies = Map.fromListWith (+) $ (,1 :: Int) <$> orderedProductIds
   purchasedProducts <- (.data_.purchasedProducts.products) <$> getPurchasedProducts
