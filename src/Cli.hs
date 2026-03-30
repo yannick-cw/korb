@@ -30,7 +30,7 @@ data FavoritesCommand
   | FavoritesRemove ItemId
 data BasketCommand = BasketShow | BasketAdd Item
 data CheckoutCommand = GetCheckout | StartCheckout TimeslotId | PlaceOrder
-data OrderCommand = DeleteOrder OrderId | GetOrders
+data OrderCommand = DeleteOrder OrderId | GetOrders | OrdersHistory | GetOrder OrderId
 data Command
   = Store StoreCommand
   | Search Text [SearchAttribute]
@@ -177,6 +177,12 @@ basketParser =
 orderDeleteParser :: Parser OrderCommand
 orderDeleteParser = DeleteOrder <$> argument (OrderId <$> str) (metavar "ORDER_ID")
 
+orderGetParser :: Parser OrderCommand
+orderGetParser = GetOrder <$> argument (OrderId <$> str) (metavar "ORDER_ID")
+
+orderHistoryParser :: Parser OrderCommand
+orderHistoryParser = pure OrdersHistory
+
 orderParser :: Parser Command
 orderParser =
   Order
@@ -184,6 +190,12 @@ orderParser =
             ( command
                 "delete"
                 (info orderDeleteParser (progDesc "Cancel an order by order ID"))
+                <> command
+                  "get"
+                  (info orderGetParser (progDesc "Get an order by ID"))
+                <> command
+                  "history"
+                  (info orderHistoryParser (progDesc "Receive the order history"))
             )
             <|> pure GetOrders
         )
@@ -216,7 +228,7 @@ commandParser =
         )
       <> command
         "orders"
-        (info orderParser (progDesc "Show open orders (no args), or use 'delete' subcommand"))
+        (info orderParser (progDesc "Show open orders (no args), or use 'delete'/'history' subcommand"))
 
 versionOption :: Parser (a -> a)
 versionOption = infoOption "korb 0.1.0.0" (long "version" <> short 'v' <> help "Show version")
@@ -261,7 +273,9 @@ examples =
     , "  korb checkout create <TIMESLOT_ID> Create a checkout for a given timeslot id"
     , "  korb checkout order              Place the order. Timeslot must be attached first."
     , ""
-    , "  korb orders                      Show open orders"
+    , "  korb orders                      Show open orders."
+    , "  korb orders history              Show all orders."
+    , "  korb orders get <ORDER_ID>       Get an order (with details) by id."
     , "  korb orders delete <ORDER_ID>    Cancel an order by order ID - will give 200 on successive calls."
     , ""
     , "  korb login                       Authenticate via REWE PKCE browser flow. Stores tokens in Keychain."

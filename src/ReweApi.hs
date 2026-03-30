@@ -34,7 +34,8 @@ data ReweAuthedApi = ReweAuthedApi
   , confirmOrder :: CheckoutId -> BasketId -> IOE ApiError (ReweResponse CheckoutResponse)
   , postOrder :: CheckoutId -> IOE ApiError (ReweResponse OrderResponse)
   , getOrders :: IOE ApiError (ReweResponse OrderHistoryResponse)
-  , deleteOrder :: OrderId -> IOE ApiError ()
+  , getOrder :: OrderId -> IOE ApiError (ReweResponse OrderDetailResponse)
+  , deleteOrder :: OrderId -> IOE ApiError (ReweResponse OrderCancelResponse)
   }
 
 newtype RewePublicApi = RewePublicApi
@@ -105,6 +106,7 @@ mkReweAuthedClient (HttpClient{get, post, delete, patch}) auth (CurrentStore (Ww
       , postOrder = \(CheckoutId checkoutId) ->
           post (object []) (apiBase /: "checkouts" /: checkoutId /: "orders") mandatoryHeaders
       , getOrders = get (apiBase /: "orders" /: "history") mandatoryHeaders
+      , getOrder = \(OrderId orderId) -> get (apiBase /: "orders" /: orderId) mandatoryHeaders
       , deleteOrder = \(OrderId orderId) ->
           delete (apiBase /: "orders" /: orderId) mandatoryHeaders
       }
@@ -190,12 +192,18 @@ orderCheckout api@ReweAuthedApi{postOrder, confirmOrder} = do
   _ <- confirmOrder co.checkout.id co.basket.id
   (.data_) <$> postOrder co.checkout.id
 
-getOrderHistory :: ReweAuthedApi -> IOE ApiError [OrderHistoryEntry]
-getOrderHistory ReweAuthedApi{getOrders} = do
-  orders <- (.data_.orderHistory.orders) <$> getOrders
+getOpenOrders :: ReweAuthedApi -> IOE ApiError [OrderHistoryEntry]
+getOpenOrders api = do
+  orders <- getOrderHistory api
   pure $ filter isActionable orders
  where
   isActionable order = any (\sub -> sub.isOpen && any (`elem` ["modify", "cancel"]) sub.orderActions) order.subOrders
 
-deleteOpenOrder :: ReweAuthedApi -> OrderId -> IOE ApiError ()
-deleteOpenOrder ReweAuthedApi{deleteOrder} = deleteOrder
+getOrderHistory :: ReweAuthedApi -> IOE ApiError [OrderHistoryEntry]
+getOrderHistory ReweAuthedApi{getOrders} = (.data_.orderHistory.orders) <$> getOrders
+
+deleteOpenOrder :: ReweAuthedApi -> OrderId -> IOE ApiError OrderCancelResponse
+deleteOpenOrder ReweAuthedApi{deleteOrder} orderId = (.data_) <$> deleteOrder orderId
+
+getOneOrder :: ReweAuthedApi -> OrderId -> IOE ApiError OrderDetail
+getOneOrder ReweAuthedApi{getOrder} orderId = (.data_.orderDetails) <$> getOrder orderId

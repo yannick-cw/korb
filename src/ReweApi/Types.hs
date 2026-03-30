@@ -299,6 +299,11 @@ newtype OrderResponse = OrderResponse {order :: Order}
 instance FromJSON OrderResponse
 instance ToJSON OrderResponse
 
+newtype OrderCancelResponse = OrderCancelResponse {orderCancel :: Text}
+  deriving stock (Generic, Show, Eq)
+instance FromJSON OrderCancelResponse
+instance ToJSON OrderCancelResponse
+
 -- Order history (GET /orders/history)
 
 data OrderTimeSlot = OrderTimeSlot
@@ -340,6 +345,46 @@ newtype OrderHistoryResponse = OrderHistoryResponse {orderHistory :: OrderHistor
   deriving stock (Generic, Show, Eq)
 instance FromJSON OrderHistoryResponse
 instance ToJSON OrderHistoryResponse
+
+-- Order detail (GET /orders/{orderId})
+
+data OrderDetailLineItem = OrderDetailLineItem
+  { lineItemType :: Text
+  , totalPrice :: CentPrice
+  , productId :: Maybe ProductId
+  , title :: Maybe Text
+  , quantity :: Maybe Int
+  , price :: Maybe CentPrice
+  }
+  deriving stock (Generic, Show, Eq)
+instance FromJSON OrderDetailLineItem
+instance ToJSON OrderDetailLineItem
+
+data OrderDetailSubOrder = OrderDetailSubOrder
+  { timeSlot :: OrderTimeSlot
+  , status :: Text
+  , lineItems :: [OrderDetailLineItem]
+  }
+  deriving stock (Generic, Show, Eq)
+instance FromJSON OrderDetailSubOrder
+instance ToJSON OrderDetailSubOrder
+
+data OrderDetail = OrderDetail
+  { orderId :: OrderId
+  , orderDate :: Text
+  , orderValue :: CentPrice
+  , status :: Text
+  , articlesPrice :: CentPrice
+  , subOrders :: [OrderDetailSubOrder]
+  }
+  deriving stock (Generic, Show, Eq)
+instance FromJSON OrderDetail
+instance ToJSON OrderDetail
+
+newtype OrderDetailResponse = OrderDetailResponse {orderDetails :: OrderDetail}
+  deriving stock (Generic, Show, Eq)
+instance FromJSON OrderDetailResponse
+instance ToJSON OrderDetailResponse
 
 data PatchTimeslotReq = PatchTimeslotReq
   { basketId :: BasketId

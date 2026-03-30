@@ -20318,6 +20318,221 @@ paths:
         '200':
           description: OK
           content: {}
+  /orders/B-7UK-24P-BDS:
+    get:
+      summary: GET b-7uk-24p-bds
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+                        locations:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              line:
+                                type: number
+                              column:
+                                type: number
+                        path:
+                          type: array
+                          items:
+                            type: string
+                        extensions:
+                          type: object
+                          properties:
+                            statusCode:
+                              type: number
+                            classification:
+                              type: string
+                  data:
+                    type: object
+                    properties:
+                      ssrInfo:
+                        type: object
+                        properties:
+                          state:
+                            type: string
+                          blocked:
+                            type: boolean
+                          path:
+                            type: string
+                      tracking:
+                        type: object
+                        nullable: true
+                      orderDetails:
+                        type: object
+                        properties:
+                          orderId:
+                            type: string
+                          orderDate:
+                            type: string
+                          orderValue:
+                            type: number
+                          status:
+                            type: string
+                          transportBoxSurcharge:
+                            type: number
+                          payment:
+                            type: object
+                            properties:
+                              paymentMethod:
+                                type: string
+                              paymentMethodTitle:
+                                type: string
+                          optionalFees:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                price:
+                                  type: number
+                          substitutesSurcharge:
+                            type: number
+                          articlesPrice:
+                            type: number
+                          subOrders:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                timeSlot:
+                                  type: object
+                                  properties:
+                                    firstSlotDate:
+                                      type: string
+                                    lastSlotDate:
+                                      type: string
+                                    wwIdent:
+                                      type: string
+                                pickupAddress:
+                                  type: object
+                                  properties:
+                                    name:
+                                      type: string
+                                    zipCode:
+                                      type: string
+                                    city:
+                                      type: string
+                                    street:
+                                      type: string
+                                    houseNumber:
+                                      type: string
+                                coupons:
+                                  type: array
+                                  items: {}
+                                channel:
+                                  type: string
+                                lineItems:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      lineItemType:
+                                        type: string
+                                      totalPrice:
+                                        type: number
+                                status:
+                                  type: string
+                                statusInfo:
+                                  type: object
+                                  properties:
+                                    orderIsModifiable:
+                                      type: boolean
+                                    sumOfRefundPrices:
+                                      type: number
+                                    lastStateUpdate:
+                                      type: object
+                                      nullable: true
+                                    deliverySuccess:
+                                      type: object
+                                      nullable: true
+                                    lastModified:
+                                      type: object
+                                      nullable: true
+                                    articleSubstitution:
+                                      type: boolean
+                                    fulfilledOrder:
+                                      type: object
+                                      nullable: true
+                                    pickedOrder:
+                                      type: object
+                                      nullable: true
+                                lastStatusUpdate:
+                                  type: object
+                                  nullable: true
+                                callbackPhoneNumber:
+                                  type: string
+                                orderActions:
+                                  type: array
+                                  items:
+                                    type: string
+                                originalUserComment:
+                                  type: string
+                                usePayback:
+                                  type: object
+                                  nullable: true
+                                invoiceIds:
+                                  type: array
+                                  items: {}
+                                merchantInfo:
+                                  type: object
+                                  properties:
+                                    name:
+                                      type: string
+                                    details:
+                                      type: object
+                                      nullable: true
+                                statusTransitions:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      status:
+                                        type: string
+                                      timestamp:
+                                        type: string
+                          invoiceAddress:
+                            type: object
+                            nullable: true
+                  extensions:
+                    type: object
+                    properties:
+                      http:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            path:
+                              type: array
+                              items:
+                                type: string
+                            message:
+                              type: string
+                            statusCode:
+                              type: number
+                            responseBody:
+                              type: object
+                              nullable: true
+      parameters:
+      - name: isoTimestamps
+        in: query
+        required: false
+        schema:
+          type: string
 x-path-templates:
 # Remove the ignore: prefix to generate an endpoint with its URL
 # Lines that are closer to the top take precedence, the matching is greedy

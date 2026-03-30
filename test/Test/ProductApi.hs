@@ -181,5 +181,6 @@ failingClient =
     , confirmOrder = \_ _ -> throwE (ApiError "not implemented")
     , postOrder = \_ -> throwE (ApiError "not implemented")
     , getOrders = throwE (ApiError "not implemented")
+    , getOrder = \_ -> throwE (ApiError "not implemented")
     , deleteOrder = \_ -> throwE (ApiError "not implemented")
     }

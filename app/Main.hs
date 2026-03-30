@@ -65,5 +65,9 @@ run = do
               orderCheckout client >>= printValue pretty
             Order (DeleteOrder orderId) ->
               deleteOpenOrder client orderId >>= printValue pretty
+            Order (GetOrder orderId) ->
+              getOneOrder client orderId >>= printValue pretty
             Order GetOrders ->
+              getOpenOrders client >>= printValue pretty
+            Order OrdersHistory ->
               getOrderHistory client >>= printValue pretty

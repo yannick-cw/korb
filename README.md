@@ -99,7 +99,8 @@ Commands:
   korb checkout create <TIMESLOT_ID> Reserve timeslot, create checkout, and set payment to market pickup
   korb checkout order              Confirm and place the order. Timeslot must be attached first.
 
-  korb orders                      Show open orders
+  korb orders                      Show open orders.
+  korb orders history              Show all orders.
   korb orders delete <ORDER_ID>    Cancel an order by order ID - will give 200 on successive calls.
 
   korb login                       Authenticate via REWE PKCE browser flow. Stores tokens in Keychain.
