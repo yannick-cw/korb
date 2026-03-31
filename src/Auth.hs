@@ -1,4 +1,4 @@
-module Auth (mkAuth, mkKeychainTokenStore) where
+module Auth (mkAuth, mkTokenFileStore) where
 
 import Auth.Types (
   AccessToken (..),
@@ -11,7 +11,7 @@ import Auth.Types (
   TokenStore (..),
  )
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (except, throwE)
+import Control.Monad.Trans.Except (except)
 import Crypto.Hash (Digest, SHA256, hash)
 import Crypto.Random.Entropy (getEntropy)
 import Data.Aeson (eitherDecodeStrict)
@@ -20,46 +20,55 @@ import Data.ByteArray (convert)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base64.URL (decodeUnpadded, encodeUnpadded)
 import Data.Int (Int64)
-import Data.Text (Text, pack, splitOn, strip, unpack)
+import Data.Text (Text, pack, splitOn)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.IO qualified as TIO
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Errors (
   AppError,
-  AuthError (AuthError, NoTokenError),
+  AuthError (AuthError),
+  FileError (..),
   IOE,
   liftE,
   liftIOE,
  )
 import HttpClient (HttpClient (..))
 import Network.HTTP.Req (FormUrlEncodedParam, Scheme (Https), Url, https, (/:), (=:))
-import System.Exit (ExitCode (..))
-import System.Process (callProcess, readProcessWithExitCode)
+import System.Directory (createDirectoryIfMissing, getXdgDirectory)
+import System.Directory.OsPath (XdgDirectory (..))
+import System.FilePath ((</>))
+import System.Posix.Files (
+  ownerExecuteMode,
+  ownerReadMode,
+  ownerWriteMode,
+  setFileMode,
+  unionFileModes,
+ )
 import Text.Regex.TDFA (AllTextSubmatches (getAllTextSubmatches), (=~))
 
-readToken :: String -> IOE AuthError Text
+configDir :: IO FilePath
+configDir = getXdgDirectory XdgConfig "korb/tokens"
+
+readToken :: String -> IOE FileError Text
 readToken tknKind = do
-  (exitCode, stdout, _) <-
-    liftIOE
-      AuthError
-      ( readProcessWithExitCode
-          "security"
-          ["find-generic-password", "-s", "korb", "-a", tknKind, "-w"]
-          ""
-      )
-  case exitCode of
-    ExitSuccess -> pure $ strip (pack stdout)
-    ExitFailure _ -> throwE NoTokenError
+  liftIOE TokenReadError $
+    do
+      dir <- configDir
+      TIO.readFile (dir </> tknKind)
 
-storeTkn :: Text -> String -> IOE AuthError ()
+storeTkn :: Text -> String -> IOE FileError ()
 storeTkn tkn tknName =
-  liftIOE AuthError $
-    callProcess
-      "security"
-      ["add-generic-password", "-s", "korb", "-a", tknName, "-w", unpack tkn, "-U"]
+  liftIOE FileError $
+    do
+      dir <- configDir
+      createDirectoryIfMissing True dir
+      setFileMode
+        dir
+        (ownerReadMode `unionFileModes` ownerWriteMode `unionFileModes` ownerExecuteMode)
+      TIO.writeFile (dir </> tknName) tkn
 
-mkKeychainTokenStore :: TokenStore
-mkKeychainTokenStore =
+mkTokenFileStore :: TokenStore
+mkTokenFileStore =
   TokenStore
     { readAccess = AccessToken <$> readToken "access_token"
     , readRefresh = RefreshToken <$> readToken "refresh_token"
@@ -162,7 +171,7 @@ loginFlow store HttpClient{urlFromEncodedPost} = do
       urlFromEncodedPost (reweFormEncodedBody code verifier) tokenEndpoint
   liftE $ store.storeAccess tknRes.access_token
   liftE $ store.storeRefresh tknRes.refresh_token
-  pure "Login succeeded, tokens stored in keyring"
+  pure "Login succeeded, tokens stored"
 
 mkAuth :: TokenStore -> HttpClient -> Auth
 mkAuth store client =

@@ -13,12 +13,13 @@ import Control.Monad.Trans.Except (ExceptT (..), withExceptT)
 import Data.Bifunctor (first)
 import Data.Text (Text, pack, unpack)
 
-data ApiError = ApiError Text | DecodingError Text deriving (Eq)
+data ApiError = ApiError Text | DecodingError Text deriving stock (Eq)
 instance Show ApiError where
   show (ApiError t) = "APIError: " <> unpack t
   show (DecodingError t) = "Decoding error: " <> unpack t
-data AuthError = AuthError Text | NoTokenError deriving (Show)
-data FileError = FileError Text | FileReadError Text deriving (Show)
+newtype AuthError = AuthError Text deriving newtype (Show)
+data FileError = FileError Text | FileReadError Text | TokenReadError Text
+  deriving stock (Show)
 data AppError
   = AppApiError ApiError
   | AppFileError FileError

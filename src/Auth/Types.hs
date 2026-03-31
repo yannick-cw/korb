@@ -13,14 +13,14 @@ import Data.Aeson (FromJSON, ToJSON)
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
-import Errors (AppError, AuthError, IOE)
+import Errors (AppError, FileError, IOE)
 import GHC.Generics (Generic)
 
 data TokenStore = TokenStore
-  { readAccess :: IOE AuthError AccessToken
-  , readRefresh :: IOE AuthError RefreshToken
-  , storeAccess :: AccessToken -> IOE AuthError ()
-  , storeRefresh :: RefreshToken -> IOE AuthError ()
+  { readAccess :: IOE FileError AccessToken
+  , readRefresh :: IOE FileError RefreshToken
+  , storeAccess :: AccessToken -> IOE FileError ()
+  , storeRefresh :: RefreshToken -> IOE FileError ()
   }
 
 data Auth = Auth
@@ -30,11 +30,11 @@ data Auth = Auth
 
 newtype PKCEVerifier = PKCEVerifier ByteString
 
-newtype AuthCode = AuthCode Text deriving (Show)
-newtype AccessToken = AccessToken Text deriving (Show, Generic)
+newtype AuthCode = AuthCode Text deriving newtype (Show)
+newtype AccessToken = AccessToken Text deriving stock (Show, Generic)
 instance FromJSON AccessToken
 instance ToJSON AccessToken
-newtype RefreshToken = RefreshToken Text deriving (Show, Generic)
+newtype RefreshToken = RefreshToken Text deriving stock (Show, Generic)
 instance FromJSON RefreshToken
 instance ToJSON RefreshToken
 data TokenResponse = TokenResponse
@@ -50,5 +50,5 @@ data TokenResponse = TokenResponse
 instance FromJSON TokenResponse
 instance ToJSON TokenResponse
 
-newtype Exp = Exp {exp :: Int64} deriving (Generic, Show)
+newtype Exp = Exp {exp :: Int64} deriving stock (Generic, Show)
 instance FromJSON Exp

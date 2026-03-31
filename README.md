@@ -22,13 +22,18 @@ The **magic** is the generated template of what I always order. Just tell an age
 
 ### Binary (recommended)
 
-Download the latest release (currently Mac OS supported) from [GitHub Releases](https://github.com/yannick-cw/korb/releases):
+Download the latest release from [GitHub Releases](https://github.com/yannick-cw/korb/releases):
 
 ```bash
 # macOS (Apple Silicon)
 curl -L https://github.com/yannick-cw/korb/releases/latest/download/korb-aarch64-macos -o korb
 chmod +x korb
 mv korb /usr/local/bin/
+
+# Linux (x86_64)
+curl -L https://github.com/yannick-cw/korb/releases/latest/download/korb-x86_64-linux -o korb
+chmod +x korb
+sudo mv korb /usr/local/bin/
 ```
 
 ### From source
@@ -128,7 +133,7 @@ Commands:
   korb ebons                       List digital receipts (eBons).
   korb ebons download <EBON_ID>    Download eBon PDF. --output FILE (default: ebon.pdf)
 
-  korb login                       Authenticate via REWE PKCE browser flow. Stores tokens in Keychain.
+  korb login                       Authenticate via REWE PKCE browser flow.
 
 All commands support --pretty for formatted JSON output.
 Output is JSON for agent consumption.
@@ -143,7 +148,7 @@ Reverse-engineered OpenAPI specs for the REWE mobile API:
 
 ## // Platform support
 
-Currently macOS only (uses macOS Keychain for token storage). Linux support planned.
+Currently macOS and linux.
 
 ## // Prior work & attribution
 

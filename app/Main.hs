@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Auth (mkAuth, mkKeychainTokenStore)
+import Auth (mkAuth, mkTokenFileStore)
 import Auth.Types (Auth (..))
 import Cli (
   BasketCommand (..),
@@ -20,7 +20,6 @@ import Data.Void (absurd)
 import Errors (
   ApiError (..),
   AppError (..),
-  AuthError (..),
   FileError (..),
   IOE,
   LiftError (..),
@@ -55,7 +54,7 @@ main = do
   result <- runExceptT run
   case result of
     Left (AppFileError (FileReadError err)) -> print $ "It seems like you have not yet set a store - run korb store set" ++ show err
-    Left (AppAuthError NoTokenError) -> putStr $ "No access token found in keychain - run 'korb login' first"
+    Left (AppFileError (TokenReadError err)) -> print $ "No access token found - run 'korb login' first" ++ show err
     Left err -> print err
     Right _ -> pure ()
 
@@ -63,7 +62,7 @@ run :: IOE AppError ()
 run = do
   Input{cmd, pretty} <- withExceptT absurd parseInput
   httpClient <- liftE mkHttpClient
-  let tokenStore = mkKeychainTokenStore
+  let tokenStore = mkTokenFileStore
   let auth = mkAuth tokenStore httpClient
   let publicClient = mkRewePublicClient httpClient
   let authedClient = mkReweAuthedClient httpClient auth
