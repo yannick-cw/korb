@@ -1,6 +1,15 @@
 module Auth (mkAuth, mkKeychainTokenStore) where
 
-import Auth.Types
+import Auth.Types (
+  AccessToken (..),
+  Auth (..),
+  AuthCode (..),
+  Exp (..),
+  PKCEVerifier (..),
+  RefreshToken (..),
+  TokenResponse (..),
+  TokenStore (..),
+ )
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (except, throwE)
 import Crypto.Hash (Digest, SHA256, hash)
@@ -24,7 +33,7 @@ import Errors (
  )
 import HttpClient (HttpClient (..))
 import Network.HTTP.Req (FormUrlEncodedParam, Scheme (Https), Url, https, (/:), (=:))
-import System.Exit
+import System.Exit (ExitCode (..))
 import System.Process (callProcess, readProcessWithExitCode)
 import Text.Regex.TDFA (AllTextSubmatches (getAllTextSubmatches), (=~))
 

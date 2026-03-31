@@ -1,9 +1,17 @@
-module Errors where
+module Errors (
+  ApiError (..),
+  AuthError (..),
+  FileError (..),
+  AppError (..),
+  IOE,
+  LiftError (..),
+  liftIOE,
+) where
 
-import Control.Exception
-import Control.Monad.Trans.Except
+import Control.Exception (IOException, try)
+import Control.Monad.Trans.Except (ExceptT (..), withExceptT)
 import Data.Bifunctor (first)
-import Data.Text hiding (show)
+import Data.Text (Text, pack, unpack)
 
 data ApiError = ApiError Text | DecodingError Text deriving (Eq)
 instance Show ApiError where

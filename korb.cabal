@@ -53,13 +53,26 @@ extra-source-files:
     certs/mobile-clients-api.rewe.de/private.key
 
 common warnings
-    ghc-options: -Wall -Werror=incomplete-patterns
+    ghc-options:
+        -Wall
+        -Wcompat
+        -Widentities
+        -Wincomplete-uni-patterns
+        -Wincomplete-record-updates
+        -Wredundant-constraints
+        -Wmissing-export-lists
+        -Wpartial-fields
+        -Wmissing-deriving-strategies
+        -Wunused-packages
+        -Werror=incomplete-patterns
+        -Werror=missing-fields
     default-extensions:
         OverloadedStrings
         OverloadedRecordDot
         DuplicateRecordFields
         NoFieldSelectors
         StrictData
+        ApplicativeDo
 
 library
     -- Import common warning flags.
@@ -83,7 +96,6 @@ library
         time,
         process,
         base64-bytestring,
-        random,
         ram,
         crypton,
         filepath,
@@ -126,7 +138,6 @@ executable korb
     build-depends:
         base,
         korb,
-        optparse-applicative,
         transformers
 
     -- Directories containing source files.

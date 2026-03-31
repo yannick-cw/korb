@@ -1,4 +1,27 @@
-module ReweApi where
+module ReweApi (
+  ReweAuthedApi (..),
+  RewePublicApi (..),
+  ObjectsPerPage (..),
+  mkRewePublicClient,
+  mkReweAuthedClient,
+  searchRewe,
+  favorites,
+  favoritesAdd,
+  favoritesDelete,
+  basket,
+  basketsAdd,
+  slots,
+  checkout,
+  checkoutTimeslot,
+  orderCheckout,
+  getOpenOrders,
+  getOrderHistory,
+  deleteOpenOrder,
+  getOneOrder,
+  ebons,
+  ebonReceipt,
+  thresholdSuggestion,
+) where
 
 import Auth.Types (AccessToken (..), Auth (..))
 import Cli (NumberOfSuggestions (NumberOfSuggestions), WwIdent (..), ZipCode (..))
@@ -15,7 +38,7 @@ import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Ord (Down (Down))
 import Data.Text (Text, intercalate, isInfixOf, pack, toLower)
 import Data.Text.Encoding (encodeUtf8)
-import Data.Time (getCurrentTimeZone, utcToZonedTime, zonedTimeToUTC)
+import Data.Time (TimeZone, ZonedTime, getCurrentTimeZone, utcToZonedTime, zonedTimeToUTC)
 import Data.Traversable (forM)
 import Errors (
   ApiError (ApiError),
@@ -25,10 +48,19 @@ import Errors (
   LiftError (liftE),
   liftIOE,
  )
-import HttpClient
-import Network.HTTP.Req
+import HttpClient (HttpClient (..))
+import Network.HTTP.Req (
+  Option,
+  Scheme (Https),
+  Url,
+  header,
+  https,
+  oAuth2Bearer,
+  (/:),
+  (=:),
+ )
 import ReweApi.Types
-import Storage
+import Storage (CurrentStore (..))
 
 newtype ObjectsPerPage = ObjectsPerPage Int
 data ReweAuthedApi = ReweAuthedApi
@@ -211,6 +243,7 @@ slots ReweAuthedApi{getSlots} = do
           }
   pure $ timeslots{getTimeslotsCheckout = rezoneSlots <$> timeslots.getTimeslotsCheckout}
   where
+    updateZone :: TimeZone -> ZonedTime -> ZonedTime
     updateZone localTz = utcToZonedTime localTz . zonedTimeToUTC
 
 checkout :: ReweAuthedApi -> IOE ApiError CheckoutResponse
@@ -241,6 +274,7 @@ getOpenOrders api = do
   orders <- getOrderHistory api
   pure $ filter isActionable orders
   where
+    isActionable :: OrderHistoryEntry -> Bool
     isActionable order =
       any
         (\sub -> sub.isOpen && any (`elem` ["modify", "cancel"]) sub.orderActions)
@@ -278,10 +312,13 @@ thresholdSuggestion api@ReweAuthedApi{getPurchasedProducts, getOrders} (NumberOf
           purchasedProducts
   currentBasket <- basket api
   let purchasedNotInBasket = filter (notInBasket currentBasket) purchasableWithFrequency
-      remainingPrice = maybe (CentPrice 0) (.remainingArticlePrice) currentBasket.staggerings.nextStaggering
-      sortedByFreq = take numSuggest $ sortOn (Down . (.freq)) purchasedNotInBasket
-  pure $ SuggestionResponse sortedByFreq remainingPrice
+      remainingArticlePriceCents = maybe (CentPrice 0) (.remainingArticlePrice) currentBasket.staggerings.nextStaggering
+      suggestions = take numSuggest $ sortOn (Down . (.freq)) purchasedNotInBasket
+  pure $ SuggestionResponse{suggestions, remainingArticlePriceCents}
   where
+    fetchActualOrder :: OrderHistoryEntry -> IOE ApiError [ProductId]
     fetchActualOrder ordHist = productIdsFromOrder <$> getOneOrder api ordHist.orderId
+    productIdsFromOrder :: OrderDetail -> [ProductId]
     productIdsFromOrder order = mapMaybe (.productId) (order.subOrders >>= (.lineItems))
+    notInBasket :: Basket -> Suggestion -> Bool
     notInBasket b suggestion = all (\li -> li.product.productId /= suggestion.product.productId) b.lineItems

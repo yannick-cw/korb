@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
+
 module ReweApi.Types where
 
 import Data.Aeson (
@@ -18,11 +20,11 @@ newtype CentPrice = CentPrice Int deriving stock (Generic, Show, Eq)
 instance FromJSON CentPrice
 instance ToJSON CentPrice
 
-newtype ListingId = ListingId Text deriving stock (Generic, Show, Eq)
+newtype ListingId = ListingId Text deriving stock (Generic, Show, Eq, Read)
 instance FromJSON ListingId
 instance ToJSON ListingId
 
-newtype ProductId = ProductId Text deriving stock (Generic, Show, Eq, Ord)
+newtype ProductId = ProductId Text deriving stock (Generic, Show, Eq, Ord, Read)
 instance FromJSON ProductId
 instance ToJSON ProductId
 
@@ -128,7 +130,7 @@ newtype BasketId = BasketId Text deriving stock (Generic, Show, Eq)
 instance FromJSON BasketId
 instance ToJSON BasketId
 
-newtype Qty = Qty Int deriving stock (Eq, Show, Generic)
+newtype Qty = Qty Int deriving stock (Eq, Show, Generic, Read)
 instance FromJSON Qty
 instance ToJSON Qty
 
@@ -470,7 +472,7 @@ instance ToJSON ReserveTimeslotResponse
 
 -- Ebons (GET /ebons)
 
-newtype EbonId = EbonId Text deriving stock (Generic, Show, Eq)
+newtype EbonId = EbonId Text deriving stock (Generic, Show, Eq, Read)
 instance FromJSON EbonId
 instance ToJSON EbonId
 

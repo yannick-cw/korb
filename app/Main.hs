@@ -1,14 +1,52 @@
-module Main where
+module Main (main) where
 
 import Auth (mkAuth, mkKeychainTokenStore)
 import Auth.Types (Auth (..))
-import Cli
+import Cli (
+  BasketCommand (..),
+  CheckoutCommand (..),
+  Command (..),
+  EbonCommand (..),
+  FavoritesCommand (..),
+  Input (..),
+  OrderCommand (..),
+  StoreCommand (..),
+  SuggestionCommand (..),
+  parseInput,
+ )
 import Control.Monad (unless)
 import Control.Monad.Trans.Except (runExceptT, throwE, withExceptT)
 import Data.Void (absurd)
-import Errors
+import Errors (
+  ApiError (..),
+  AppError (..),
+  AuthError (..),
+  FileError (..),
+  IOE,
+  LiftError (..),
+ )
 import HttpClient (mkHttpClient)
-import ReweApi
+import ReweApi (
+  basket,
+  basketsAdd,
+  checkout,
+  checkoutTimeslot,
+  deleteOpenOrder,
+  ebonReceipt,
+  ebons,
+  favorites,
+  favoritesAdd,
+  favoritesDelete,
+  getOneOrder,
+  getOpenOrders,
+  getOrderHistory,
+  mkReweAuthedClient,
+  mkRewePublicClient,
+  orderCheckout,
+  searchRewe,
+  slots,
+  thresholdSuggestion,
+ )
 import Storage (readSettings, writeSettings)
 import StoreApi (printValue, searchForStores, storeExists)
 

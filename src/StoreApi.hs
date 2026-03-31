@@ -1,20 +1,26 @@
-module StoreApi where
+module StoreApi (
+  PickupMarket (..),
+  printValue,
+  searchForStores,
+  storeExists,
+) where
 
 import Cli (WwIdent (WwIdent), ZipCode (ZipCode))
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson
+import Data.Aeson (FromJSON, ToJSON, encode)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy.Char8 qualified as BL
-import Data.Text
+import Data.Text (Text)
 import Errors (ApiError, IOE)
 import GHC.Generics (Generic)
-import HttpClient
-import Network.HTTP.Req
+import HttpClient (HttpClient (..))
+import Network.HTTP.Req (https, (/:))
 import ReweApi.Types (ReweResponse (..))
 
 printValue :: (ToJSON a) => Bool -> a -> IOE e ()
 printValue pretty value = liftIO $ BL.putStrLn (encodeIt value)
   where
+    encodeIt :: (ToJSON a) => a -> BL.ByteString
     encodeIt = if pretty then encodePretty else encode
 
 data PickupMarket = PickupMarket

@@ -1,29 +1,70 @@
-module Cli where
+module Cli (
+  ZipCode (..),
+  WwIdent (..),
+  Input (..),
+  StoreCommand (..),
+  FavoritesCommand (..),
+  BasketCommand (..),
+  EbonCommand (..),
+  CheckoutCommand (..),
+  OrderCommand (..),
+  NumberOfSuggestions (..),
+  SuggestionCommand (..),
+  Command (..),
+  parseInput,
+) where
 
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Text
+import Data.Text (Text, pack)
 import Data.UUID qualified as UUID
 import Data.Version (showVersion)
 import Data.Void (Void)
 import Errors (IOE)
-import Options.Applicative
+import Options.Applicative (
+  Parser,
+  ParserInfo,
+  argument,
+  auto,
+  command,
+  eitherReader,
+  execParser,
+  flag,
+  footerDoc,
+  fullDesc,
+  header,
+  help,
+  helper,
+  hsubparser,
+  info,
+  infoOption,
+  long,
+  metavar,
+  option,
+  optional,
+  progDesc,
+  short,
+  str,
+  switch,
+  value,
+  (<**>),
+  (<|>),
+ )
 import Options.Applicative.Help (Doc, vsep)
 import Paths_korb (version)
 import ReweApi.Types (
-  EbonId (EbonId),
+  EbonId,
   Item (..),
   ItemId (..),
   ListingId (..),
   OrderId (..),
-  ProductId (ProductId),
-  Qty (..),
+  ProductId,
   SearchAttribute (..),
   TimeslotId (..),
  )
 
-newtype ZipCode = ZipCode Text deriving (Show, ToJSON, FromJSON)
-newtype WwIdent = WwIdent Text deriving (Show, ToJSON, FromJSON)
+newtype ZipCode = ZipCode Text deriving newtype (Show, ToJSON, FromJSON)
+newtype WwIdent = WwIdent Text deriving newtype (Show, ToJSON, FromJSON)
 data Input = Input {cmd :: Command, pretty :: Bool}
 data StoreCommand = StoreShow | StoreSearch ZipCode | StoreSet WwIdent ZipCode
 data FavoritesCommand
@@ -53,12 +94,13 @@ data Command
 favoritesAddParser :: Parser FavoritesCommand
 favoritesAddParser =
   FavoritesAdd
-    <$> argument (ListingId <$> str) (metavar "LISTING_ID")
-    <*> argument (ProductId <$> str) (metavar "PRODUCT_ID")
+    <$> argument auto (metavar "LISTING_ID")
+    <*> argument auto (metavar "PRODUCT_ID")
 
-uuidArg :: (Text -> a) -> String -> String -> Parser a
+uuidArg :: forall a. (Text -> a) -> String -> String -> Parser a
 uuidArg wrap metaName errMsg = argument (eitherReader parse) (metavar metaName)
   where
+    parse :: String -> Either String a
     parse s = case UUID.fromString s of
       Just _ -> Right (wrap (pack s))
       Nothing -> Left errMsg
@@ -175,9 +217,7 @@ checkoutParser =
 
 ebonDownloadParser :: Parser EbonCommand
 ebonDownloadParser =
-  ( EbonDownload . EbonId
-      <$> argument str (metavar "EBON_ID")
-  )
+  (EbonDownload <$> argument auto (metavar "EBON_ID"))
     <*> option
       str
       (long "output" <> help "Output file path" <> metavar "FILE" <> value "ebon.pdf")
@@ -198,14 +238,10 @@ ebonParser =
 
 basketAddParser :: Parser BasketCommand
 basketAddParser =
-  ( (\prodId qty -> BasketAdd $ Item (ListingId prodId) (Qty <$> qty))
-      <$> argument str (metavar "LISTING_ID")
-  )
+  (\listingId quantity -> BasketAdd Item{listingId, quantity})
+    <$> argument auto (metavar "LISTING_ID")
     <*> optional
-      ( option
-          auto
-          (long "qty" <> help "Absolute quantity (default: 1). Set 0 to remove")
-      )
+      (option auto (long "qty" <> help "Absolute quantity (default: 1). Set 0 to remove"))
 
 basketParser :: Parser Command
 basketParser =

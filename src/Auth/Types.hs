@@ -1,11 +1,20 @@
-module Auth.Types where
+module Auth.Types (
+  TokenStore (..),
+  Auth (..),
+  PKCEVerifier (..),
+  AuthCode (..),
+  AccessToken (..),
+  RefreshToken (..),
+  TokenResponse (..),
+  Exp (..),
+) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Errors (AppError, AuthError, IOE)
-import GHC.Generics
+import GHC.Generics (Generic)
 
 data TokenStore = TokenStore
   { readAccess :: IOE AuthError AccessToken

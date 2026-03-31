@@ -1,20 +1,49 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module HttpClient where
+module HttpClient (
+  HttpClient (..),
+  mkHttpClient,
+) where
 
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except
-import Data.Aeson
+import Control.Monad.Trans.Except (ExceptT (..), throwE, withExceptT)
+import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict)
 import Data.ByteString (ByteString)
 import Data.FileEmbed (embedFile)
-import Data.Text
+import Data.Text (pack)
 import Data.Text.Encoding (decodeUtf8)
 import Errors (ApiError (ApiError), IOE)
-import Network.Connection
+import Network.Connection (TLSSettings (..))
 import Network.HTTP.Client (Manager)
-import Network.HTTP.Client.TLS
-import Network.HTTP.Req
-import Network.TLS
+import Network.HTTP.Client.TLS (mkManagerSettings, newTlsManagerWith)
+import Network.HTTP.Req (
+  BsResponse,
+  DELETE (..),
+  FormUrlEncodedParam,
+  GET (..),
+  HttpConfig (..),
+  NoReqBody (..),
+  Option,
+  PATCH (..),
+  POST (..),
+  ReqBodyJson (..),
+  ReqBodyUrlEnc (..),
+  Scheme (Https),
+  Url,
+  bsResponse,
+  defaultHttpConfig,
+  header,
+  req,
+  responseBody,
+  runReq,
+ )
+import Network.TLS (
+  ClientHooks (..),
+  ClientParams (..),
+  Shared (..),
+  credentialLoadX509FromMemory,
+  defaultParamsClient,
+ )
 import System.X509 (getSystemCertificateStore)
 
 data HttpClient = HttpClient

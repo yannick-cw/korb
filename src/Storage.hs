@@ -1,10 +1,14 @@
-module Storage where
+module Storage (
+  CurrentStore (..),
+  writeSettings,
+  readSettings,
+) where
 
-import Cli
-import Data.Aeson
+import Cli (WwIdent (..), ZipCode (..))
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Text.IO qualified as TIO
-import Errors
-import GHC.Generics
+import Errors (FileError (..), IOE, liftIOE)
+import GHC.Generics (Generic)
 import System.Directory (
   XdgDirectory (XdgConfig),
   createDirectoryIfMissing,
