@@ -20,7 +20,7 @@ name:               korb
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version:            0.4.0.0
+version:            0.4.1.0
 
 -- A short (one-line) description of the package.
 -- synopsis:
