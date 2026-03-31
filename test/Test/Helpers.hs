@@ -53,56 +53,6 @@ genListing = do
   grammage <- Gen.maybe (Gen.text (Range.linear 1 30) Gen.unicode)
   pure Listing{listingId, currentRetailPrice, grammage}
 
-genOrderHistory :: [Product] -> Gen (OrderHistoryEntry, OrderDetail)
-genOrderHistory products = do
-  orderId <- OrderId <$> Gen.text (Range.linear 5 15) Gen.alphaNum
-  orderDate <- Gen.text (Range.linear 10 20) Gen.digit
-  let orderValue = sum $ (.listing.currentRetailPrice) <$> products
-  status <- Gen.element ["open", "closed", "cancelled"]
-  (firstSlotDate, lastSlotDate) <- liftA2 (,) genZoneTime genZoneTime
-  let detailLineItems =
-        ( \p ->
-            OrderDetailLineItem
-              { lineItemType = "PRODUCT"
-              , totalPrice = p.listing.currentRetailPrice
-              , productId = Just p.productId
-              , title = Just p.title
-              , quantity = Just 1
-              , price = Just p.listing.currentRetailPrice
-              }
-        )
-          <$> products
-  let historyEntry =
-        OrderHistoryEntry
-          { orderId
-          , orderValue
-          , orderDate
-          , subOrders =
-              [ SubOrder
-                  { isOpen = status == "open"
-                  , status
-                  , timeSlot = OrderTimeSlot{firstSlotDate, lastSlotDate}
-                  , orderActions = if status == "open" then ["modify", "cancel"] else []
-                  }
-              ]
-          }
-  let detail =
-        OrderDetail
-          { orderId
-          , orderDate
-          , orderValue
-          , status
-          , articlesPrice = orderValue
-          , subOrders =
-              [ OrderDetailSubOrder
-                  { timeSlot = OrderTimeSlot{firstSlotDate, lastSlotDate}
-                  , status
-                  , lineItems = detailLineItems
-                  }
-              ]
-          }
-  pure (historyEntry, detail)
-
 genLineItem :: Product -> Gen LineItem
 genLineItem prod = do
   qty <- Gen.int (Range.constant 1 10)

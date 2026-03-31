@@ -3,13 +3,12 @@
 module Test.ProductApi (spec) where
 
 import Cli (NumberOfSuggestions (NumberOfSuggestions))
-import Control.Monad (forM)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (runExceptT, throwE)
 import Data.Aeson (decode)
 import Data.ByteString.Lazy qualified as BL
 import Data.Foldable (Foldable (toList), for_)
-import Data.List (find, sortOn)
+import Data.List (sortOn)
 import Data.Maybe (fromMaybe)
 import Data.Ord (Down (..))
 import Data.Text (isInfixOf)
@@ -97,52 +96,26 @@ spec = describe "ProductApi" $ do
       Right _ -> fail "impossible"
       Left err -> fail (show err)
 
-  it "suggestions filter to only existing products not in basket" $ hedgehog $ do
+  it "suggestions engine filters to only existing products not in basket" $ hedgehog $ do
     products <- forAll $ Gen.nonEmpty (Range.linear 1 100) genProduct
-    pruchableProducts <- forAll $ Gen.subsequence (toList products)
-    lineItemInBasket <- forAll $ Gen.element products >>= genLineItem
-    orderProductsSets <-
-      forAll $ Gen.list (Range.linear 1 10) (Gen.subsequence $ toList products)
-    (orderHistoryEntries, orderDetails) <-
-      forAll $ unzip <$> forM orderProductsSets genOrderHistory
+    purchableProducts <- forAll $ Gen.subsequence (toList products)
+    basketProdIds <- forAll $ Gen.subsequence ((.productId) <$> toList products)
+    orderedProductIds <- -- ensures duplicates are likely
+      forAll $ Gen.list (Range.linear 1 500) (Gen.element ((.productId) <$> toList products))
     numSuggestions <- forAll $ Gen.int (Range.linear 0 100)
-    let testClient =
-          mkSuggestionClient
-            (mkEmptyBasket [lineItemInBasket])
-            orderHistoryEntries
-            orderDetails
-            pruchableProducts
-    res <-
-      liftIO $ runExceptT $ thresholdSuggestion testClient (NumberOfSuggestions numSuggestions)
-    case res of
-      Left err -> fail (show err)
-      Right (SuggestionResponse{suggestions}) -> do
-        annotate "Never suggest never ordered prodct"
-        for_ suggestions $ \s -> diff s.freq (>) 0
-        annotate "Never suggest more than numSuggestion"
-        diff (length suggestions) (<=) numSuggestions
-        annotate "Never suggest items already in the basket"
-        for_ suggestions $ \s -> diff s.product.productId (/=) lineItemInBasket.product.productId
-        annotate "Always sort suggesions with most frequently bought first"
-        let freqs = (.freq) <$> suggestions
-        diff freqs (==) (sortOn Down freqs)
-        annotate "All suggestions must be purchable"
-        for_ suggestions $ \s -> diff s.product.productId elem ((.productId) <$> pruchableProducts)
-  where
-    mkSuggestionClient ::
-      Basket -> [OrderHistoryEntry] -> [OrderDetail] -> [Product] -> ReweAuthedApi
-    mkSuggestionClient currentBasket entries details purchased =
-      failingClient
-        { getBaseket = pure $ ReweResponse (BasketResponse currentBasket)
-        , getOrders = \_ -> pure $ ReweResponse (OrderHistoryResponse (OrderHistory entries))
-        , getOrder = \oid ->
-            maybe
-              (throwE $ ApiError "Order not found")
-              (pure . ReweResponse . OrderDetailResponse)
-              (find (\o -> o.orderId == oid) details)
-        , getPurchasedProducts =
-            pure $ ReweResponse (PurchasedProductsResponse (SearchProducts purchased))
-        }
+    let num = NumberOfSuggestions numSuggestions
+    let suggestions = suggestionEngine orderedProductIds purchableProducts basketProdIds num
+    annotate "Never suggest never ordered prodct"
+    for_ suggestions $ \s -> diff s.freq (>) 0
+    annotate "Never suggest more than numSuggestion"
+    diff (length suggestions) (<=) numSuggestions
+    annotate "Never suggest items already in the basket"
+    for_ suggestions $ \s -> diff s.product.productId notElem basketProdIds
+    annotate "Always sort suggesions with most frequently bought first"
+    let freqs = (.freq) <$> suggestions
+    diff freqs (==) (sortOn Down freqs)
+    annotate "All suggestions must be purchable"
+    for_ suggestions $ \s -> diff s.product.productId elem ((.productId) <$> purchableProducts)
 
 mkEmptyBasket :: [LineItem] -> Basket
 mkEmptyBasket items =

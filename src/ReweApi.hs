@@ -21,6 +21,7 @@ module ReweApi (
   ebons,
   ebonReceipt,
   thresholdSuggestion,
+  suggestionEngine,
 ) where
 
 import Auth.Types (AccessToken (..), Auth (..))
@@ -301,25 +302,37 @@ ebonReceipt ReweAuthedApi{getReceipt} ebonId filePath = do
 
 thresholdSuggestion ::
   ReweAuthedApi -> NumberOfSuggestions -> IOE ApiError SuggestionResponse
-thresholdSuggestion api@ReweAuthedApi{getPurchasedProducts, getOrders} (NumberOfSuggestions numSuggest) = do
+thresholdSuggestion api@ReweAuthedApi{getPurchasedProducts, getOrders} num = do
   oldOrderEntries <- (.data_.orderHistory.orders) <$> getOrders (Just $ ObjectsPerPage 10) -- limit to max 10 orders
   orderedProductIds <- concat <$> forM oldOrderEntries fetchActualOrder
-  let productOrderFrequencies = Map.fromListWith (+) $ (,1 :: Int) <$> orderedProductIds
   purchasedProducts <- (.data_.purchasedProducts.products) <$> getPurchasedProducts
-  -- filters to at least once bought items
-  let purchasableWithFrequency =
-        mapMaybe
-          (\p -> Suggestion p <$> Map.lookup p.productId productOrderFrequencies)
-          purchasedProducts
   currentBasket <- basket api
-  let purchasedNotInBasket = filter (notInBasket currentBasket) purchasableWithFrequency
-      remainingArticlePriceCents = maybe (CentPrice 0) (.remainingArticlePrice) currentBasket.staggerings.nextStaggering
-      suggestions = take numSuggest $ sortOn (Down . (.freq)) purchasedNotInBasket
+
+  let productIdsInBasket = (.product.productId) <$> currentBasket.lineItems
+  let suggestions = suggestionEngine orderedProductIds purchasedProducts productIdsInBasket num
+
+  let remainingArticlePriceCents = maybe (CentPrice 0) (.remainingArticlePrice) currentBasket.staggerings.nextStaggering
+
   pure $ SuggestionResponse{suggestions, remainingArticlePriceCents}
   where
     fetchActualOrder :: OrderHistoryEntry -> IOE ApiError [ProductId]
     fetchActualOrder ordHist = productIdsFromOrder <$> getOneOrder api ordHist.orderId
     productIdsFromOrder :: OrderDetail -> [ProductId]
     productIdsFromOrder order = mapMaybe (.productId) (order.subOrders >>= (.lineItems))
-    notInBasket :: Basket -> Suggestion -> Bool
-    notInBasket b suggestion = all (\li -> li.product.productId /= suggestion.product.productId) b.lineItems
+
+suggestionEngine ::
+  [ProductId] -> [Product] -> [ProductId] -> NumberOfSuggestions -> [Suggestion]
+suggestionEngine orderedProductIds purchasedProducts basketProductIds (NumberOfSuggestions numSuggest) =
+  let
+    productOrderFrequencies = Map.fromListWith (+) $ (,1 :: Int) <$> orderedProductIds
+    purchasableWithFrequency =
+      mapMaybe
+        (\p -> Suggestion p <$> Map.lookup p.productId productOrderFrequencies)
+        purchasedProducts
+    purchasedNotInBasket = filter (notInBasket basketProductIds) purchasableWithFrequency
+    suggestions = take numSuggest $ sortOn (Down . (.freq)) purchasedNotInBasket
+   in
+    suggestions
+  where
+    notInBasket :: [ProductId] -> Suggestion -> Bool
+    notInBasket pIdsInBasket suggestion = suggestion.product.productId `notElem` pIdsInBasket
