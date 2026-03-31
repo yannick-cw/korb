@@ -154,7 +154,7 @@ test-suite korb-test
     default-language: GHC2024
 
     -- Modules included in this executable, other than Main.
-    other-modules: Test.ProductApi, Test.StoreApi
+    other-modules: Test.ProductApi, Test.StoreApi, Test.Helpers
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

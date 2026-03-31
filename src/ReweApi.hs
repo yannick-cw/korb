@@ -40,6 +40,7 @@ import Data.Text (Text, intercalate, isInfixOf, pack, toLower)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Time (TimeZone, ZonedTime, getCurrentTimeZone, utcToZonedTime, zonedTimeToUTC)
 import Data.Traversable (forM)
+import Data.UUID (toText)
 import Errors (
   ApiError (ApiError),
   AppError (AppFileError),
@@ -130,7 +131,7 @@ mkReweAuthedClient (HttpClient{get, post, delete, patch, getBytes}) auth (Curren
             mandatoryHeaders
       , deleteFavourite = \(FavoriteListId favListId) (ItemId itemId) ->
           delete
-            (apiBase /: "favorites" /: favListId /: "lineitems" /: itemId)
+            (apiBase /: "favorites" /: favListId /: "lineitems" /: toText itemId)
             mandatoryHeaders
       , getBaseket =
           post (BasketReq True) (apiBase /: "baskets") mandatoryHeaders

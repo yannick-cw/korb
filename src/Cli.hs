@@ -76,7 +76,7 @@ data BasketCommand = BasketShow | BasketAdd Item
 data EbonCommand = EbonShow | EbonDownload EbonId FilePath
 data CheckoutCommand = GetCheckout | StartCheckout TimeslotId | PlaceOrder
 data OrderCommand = DeleteOrder OrderId | GetOrders | OrdersHistory | GetOrder OrderId
-newtype NumberOfSuggestions = NumberOfSuggestions Int
+newtype NumberOfSuggestions = NumberOfSuggestions Int deriving newtype (Show)
 newtype SuggestionCommand = ThresholdSuggestion NumberOfSuggestions
 
 data Command
@@ -107,7 +107,7 @@ uuidArg wrap metaName errMsg = argument (eitherReader parse) (metavar metaName)
 
 favoritesRemoveParser :: Parser FavoritesCommand
 favoritesRemoveParser =
-  FavoritesRemove <$> uuidArg ItemId "ITEM_ID" "Invalid item ID (expected UUID format)"
+  FavoritesRemove <$> argument auto (metavar "ITEM_ID")
 
 favoritesFilterParser :: Parser FavoritesCommand
 favoritesFilterParser = FavoritesFilter <$> argument str (metavar "QUERY")

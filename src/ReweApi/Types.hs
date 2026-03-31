@@ -11,12 +11,16 @@ import Data.Aeson (
   genericParseJSON,
  )
 import Data.Text (Text, pack, toLower)
-import Data.Time (ZonedTime)
+import Data.Time (UTCTime, ZonedTime)
+import Data.UUID (UUID)
 import GHC.Generics (Generic)
 
 -- Shared primitives
 
-newtype CentPrice = CentPrice Int deriving stock (Generic, Show, Eq)
+newtype CentPrice = CentPrice Int
+  deriving stock (Generic, Show, Eq)
+  deriving newtype (Num)
+
 instance FromJSON CentPrice
 instance ToJSON CentPrice
 
@@ -28,7 +32,7 @@ newtype ProductId = ProductId Text deriving stock (Generic, Show, Eq, Ord, Read)
 instance FromJSON ProductId
 instance ToJSON ProductId
 
-newtype ItemId = ItemId Text deriving stock (Generic, Show, Eq)
+newtype ItemId = ItemId UUID deriving stock (Generic, Show, Eq, Read)
 instance FromJSON ItemId
 instance ToJSON ItemId
 
@@ -316,8 +320,8 @@ instance ToJSON OrderCancelResponse
 -- Order history (GET /orders/history)
 
 data OrderTimeSlot = OrderTimeSlot
-  { firstSlotDate :: Text
-  , lastSlotDate :: Text
+  { firstSlotDate :: UTCTime
+  , lastSlotDate :: UTCTime
   }
   deriving stock (Generic, Show, Eq)
 instance FromJSON OrderTimeSlot

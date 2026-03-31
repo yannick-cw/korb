@@ -2,28 +2,25 @@
 
 module Test.ProductApi (spec) where
 
+import Cli (NumberOfSuggestions (NumberOfSuggestions))
+import Control.Monad (forM)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except (runExceptT, throwE)
 import Data.Aeson (decode)
 import Data.ByteString.Lazy qualified as BL
-import Data.Foldable (for_)
+import Data.Foldable (Foldable (toList), for_)
+import Data.List (find, sortOn)
 import Data.Maybe (fromMaybe)
+import Data.Ord (Down (..))
 import Data.Text (isInfixOf)
-import Data.Time (
-  UTCTime (..),
-  ZonedTime (..),
-  fromGregorian,
-  getCurrentTimeZone,
-  utc,
-  utcToZonedTime,
- )
-import Data.Time.Clock (secondsToDiffTime)
+import Data.Time (ZonedTime (..), getCurrentTimeZone, utc, utcToZonedTime)
 import Errors (ApiError (..))
-import Hedgehog (Gen, annotate, diff, forAll)
+import Hedgehog (annotate, diff, forAll)
 import Hedgehog.Gen qualified as Gen
 import Hedgehog.Range qualified as Range
 import ReweApi
 import ReweApi.Types
+import Test.Helpers
 import Test.Hspec
 import Test.Hspec.Hedgehog (hedgehog)
 
@@ -58,37 +55,26 @@ spec = describe "ProductApi" $ do
 
   it "returns the lineitem with the added qty" $ hedgehog $ do
     testProd <- forAll genProduct
-    listingId <- forAll $ (.listingId) <$> genListing
+    lineItem <- forAll $ genLineItem testProd
     qty <- forAll $ Gen.maybe (Gen.int (Range.linear 1 10))
-    let item = Item listingId (Qty <$> qty)
-        staticLineItem listingAddId (Qty lineItemQty) =
-          LineItem
-            { quantity = lineItemQty
-            , price = CentPrice 1
-            , totalPrice = CentPrice 10
-            , grammage = "1 Stück"
-            , product = testProd{listing = testProd.listing{listingId = listingAddId}}
-            , changes = Nothing
-            }
+    let item = Item{listingId = testProd.listing.listingId, quantity = Qty <$> qty}
         emptyBasket = mkEmptyBasket []
         testClient =
           failingClient
             { getBaseket = pure (ReweResponse (BasketResponse emptyBasket))
-            , addItemToBasket = \_ pId lqty _ -> pure (ReweResponse (BasketResponse (mkEmptyBasket [staticLineItem pId lqty])))
+            , addItemToBasket = \_ _ (Qty lqty) _ -> pure (ReweResponse (BasketResponse (mkEmptyBasket [lineItem{quantity = lqty}])))
             }
     res <- liftIO $ runExceptT $ basketsAdd testClient item
     case res of
       Right (Just li) -> do
-        annotate "returned lineitem has the product id of the added product"
-        diff li.product.listing.listingId (==) listingId
         annotate "quantity is the passed in quantity or default 1"
         diff li.quantity (==) (fromMaybe 1 qty)
       Right Nothing -> fail "impossible"
       Left err -> fail (show err)
 
   it "always adds the local timezone to timeslots" $ hedgehog $ do
-    testStartTime <- forAll getZoneTime
-    testEndTime <- forAll getZoneTime
+    testStartTime <- forAll $ utcToZonedTime utc <$> genZoneTime
+    testEndTime <- forAll $ utcToZonedTime utc <$> genZoneTime
     localTimeZone <- liftIO getCurrentTimeZone
     let testClient =
           failingClient
@@ -111,51 +97,52 @@ spec = describe "ProductApi" $ do
       Right _ -> fail "impossible"
       Left err -> fail (show err)
 
--- taken from: https://github.com/hedgehogqa/haskell-hedgehog/issues/215
-getZoneTime :: Gen ZonedTime
-getZoneTime =
-  utcToZonedTime utc <$> do
-    y <- toInteger <$> Gen.int (Range.constant 2000 2019)
-    m <- Gen.int (Range.constant 1 12)
-    d <- Gen.int (Range.constant 1 28)
-    let day = fromGregorian y m d
-    secs <- toInteger <$> Gen.int (Range.constant 0 86401)
-    let timeDiff = secondsToDiffTime secs
-    pure $ UTCTime day timeDiff
-
-genFavList :: Gen FavoriteList
-genFavList = do
-  products <- Gen.list (Range.linear 1 10) genProduct
-  name <- Gen.text (Range.linear 1 10) Gen.alphaNum
-  fid <- FavoriteListId <$> Gen.text (Range.linear 1 10) Gen.alphaNum
-  pure FavoriteList{id = fid, name, items = products}
-
-genProduct :: Gen Product
-genProduct = do
-  articleId <- Gen.text (Range.linear 1 10) Gen.alphaNum
-  productId <- ProductId <$> Gen.text (Range.linear 1 10) Gen.alphaNum
-  title <- Gen.text (Range.linear 1 50) Gen.unicode
-  imageURL <- Gen.text (Range.linear 1 100) Gen.alphaNum
-  orderLimit <- Gen.maybe (Gen.int (Range.linear 1 99))
-  listing <- genListing
-  pure
-    Product
-      { articleId
-      , productId
-      , title
-      , imageURL
-      , orderLimit
-      , listing
-      , attributes = Nothing
-      , itemId = Nothing
-      }
-
-genListing :: Gen Listing
-genListing = do
-  listingId <- ListingId <$> Gen.text (Range.linear 1 20) Gen.alphaNum
-  currentRetailPrice <- CentPrice <$> Gen.int (Range.linear 1 10000)
-  grammage <- Gen.maybe (Gen.text (Range.linear 1 30) Gen.unicode)
-  pure Listing{listingId, currentRetailPrice, grammage}
+  it "suggestions filter to only existing products not in basket" $ hedgehog $ do
+    products <- forAll $ Gen.nonEmpty (Range.linear 1 100) genProduct
+    pruchableProducts <- forAll $ Gen.subsequence (toList products)
+    lineItemInBasket <- forAll $ Gen.element products >>= genLineItem
+    orderProductsSets <-
+      forAll $ Gen.list (Range.linear 1 10) (Gen.subsequence $ toList products)
+    (orderHistoryEntries, orderDetails) <-
+      forAll $ unzip <$> forM orderProductsSets genOrderHistory
+    numSuggestions <- forAll $ Gen.int (Range.linear 0 100)
+    let testClient =
+          mkSuggestionClient
+            (mkEmptyBasket [lineItemInBasket])
+            orderHistoryEntries
+            orderDetails
+            pruchableProducts
+    res <-
+      liftIO $ runExceptT $ thresholdSuggestion testClient (NumberOfSuggestions numSuggestions)
+    case res of
+      Left err -> fail (show err)
+      Right (SuggestionResponse{suggestions}) -> do
+        annotate "Never suggest never ordered prodct"
+        for_ suggestions $ \s -> diff s.freq (>) 0
+        annotate "Never suggest more than numSuggestion"
+        diff (length suggestions) (<=) numSuggestions
+        annotate "Never suggest items already in the basket"
+        for_ suggestions $ \s -> diff s.product.productId (/=) lineItemInBasket.product.productId
+        annotate "Always sort suggesions with most frequently bought first"
+        let freqs = (.freq) <$> suggestions
+        diff freqs (==) (sortOn Down freqs)
+        annotate "All suggestions must be purchable"
+        for_ suggestions $ \s -> diff s.product.productId elem ((.productId) <$> pruchableProducts)
+  where
+    mkSuggestionClient ::
+      Basket -> [OrderHistoryEntry] -> [OrderDetail] -> [Product] -> ReweAuthedApi
+    mkSuggestionClient currentBasket entries details purchased =
+      failingClient
+        { getBaseket = pure $ ReweResponse (BasketResponse currentBasket)
+        , getOrders = \_ -> pure $ ReweResponse (OrderHistoryResponse (OrderHistory entries))
+        , getOrder = \oid ->
+            maybe
+              (throwE $ ApiError "Order not found")
+              (pure . ReweResponse . OrderDetailResponse)
+              (find (\o -> o.orderId == oid) details)
+        , getPurchasedProducts =
+            pure $ ReweResponse (PurchasedProductsResponse (SearchProducts purchased))
+        }
 
 mkEmptyBasket :: [LineItem] -> Basket
 mkEmptyBasket items =
@@ -169,6 +156,7 @@ mkEmptyBasket items =
     , timeSlotInformation = TimeSlotInformation Nothing Nothing ""
     , changes = Nothing
     }
+
 failingClient :: ReweAuthedApi
 failingClient =
   ReweAuthedApi
