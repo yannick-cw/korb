@@ -144,6 +144,17 @@ Reverse-engineered OpenAPI specs for the REWE mobile API:
 
 Currently macOS and linux.
 
+## // Formal verification with Lean 4
+
+The suggestion engine (`korb suggestion threshold`) is re-implemented in [Lean 4](leanKorb/) with five mathematically proven properties: suggestions have positive frequency, are sorted descending, come from ordered and available products, exclude basket items, and respect the count limit.
+A Differential Random Testing bridge in the Haskell test suite generates random inputs, runs both implementations, and asserts identical output.
+If the Lean proofs compile and the DRT passes, the Haskell production code behaves like the proven spec.
+Inspired by how [AWS Cedar](https://github.com/cedar-policy/cedar-spec) verifies their authorization engine.
+
+I also summarised the approach in a [Blog post](https://www.dev-log.me/formal_verification_in_any_language_for_everybody/).
+
+Oh and yes, this is complete overkill here and just for fun.
+
 ## // Prior work & attribution
 
 - https://github.com/ByteSizedMarius/rewerse-engineering

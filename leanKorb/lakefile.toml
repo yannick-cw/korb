@@ -1,0 +1,10 @@
+name = "leanKorb"
+version = "0.1.0"
+defaultTargets = ["leankorb"]
+
+[[lean_lib]]
+name = "LeanKorb"
+
+[[lean_exe]]
+name = "leankorb"
+root = "Main"

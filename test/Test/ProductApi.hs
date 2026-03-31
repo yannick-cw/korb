@@ -116,6 +116,8 @@ spec = describe "ProductApi" $ do
     diff freqs (==) (sortOn Down freqs)
     annotate "All suggestions must be purchable"
     for_ suggestions $ \s -> diff s.product.productId elem ((.productId) <$> purchableProducts)
+    annotate "All suggestions must have been ordered in the past"
+    for_ suggestions $ \s -> diff s.product.productId elem orderedProductIds
 
 mkEmptyBasket :: [LineItem] -> Basket
 mkEmptyBasket items =
