@@ -11,6 +11,7 @@ module Cli (
   NumberOfSuggestions (..),
   SuggestionCommand (..),
   Command (..),
+  commandParser,
   parseInput,
 ) where
 
@@ -64,21 +65,28 @@ import ReweApi.Types (
   TimeslotId (..),
  )
 
-newtype ZipCode = ZipCode Text deriving newtype (Show, ToJSON, FromJSON)
-newtype WwIdent = WwIdent Text deriving newtype (Show, ToJSON, FromJSON)
+newtype ZipCode = ZipCode Text deriving newtype (Show, Eq, ToJSON, FromJSON)
+newtype WwIdent = WwIdent Text deriving newtype (Show, Eq, ToJSON, FromJSON)
 data Input = Input {cmd :: Command, pretty :: Bool}
 data StoreCommand = StoreShow | StoreSearch ZipCode | StoreSet WwIdent ZipCode
+  deriving stock (Show, Eq)
 data FavoritesCommand
   = FavoritesShow
   | FavoritesFilter Text
   | FavoritesAdd ListingId ProductId
   | FavoritesRemove ItemId
+  deriving stock (Show, Eq)
 data BasketCommand = BasketShow | BasketAdd Item
+  deriving stock (Show, Eq)
 data EbonCommand = EbonShow | EbonDownload EbonId FilePath
+  deriving stock (Show, Eq)
 data CheckoutCommand = GetCheckout | StartCheckout TimeslotId | PlaceOrder
+  deriving stock (Show, Eq)
 data OrderCommand = DeleteOrder OrderId | GetOrders | OrdersHistory | GetOrder OrderId
-newtype NumberOfSuggestions = NumberOfSuggestions Int deriving newtype (Show)
+  deriving stock (Show, Eq)
+newtype NumberOfSuggestions = NumberOfSuggestions Int deriving newtype (Show, Eq)
 newtype SuggestionCommand = ThresholdSuggestion NumberOfSuggestions
+  deriving stock (Show, Eq)
 
 data Command
   = Store StoreCommand
@@ -91,6 +99,7 @@ data Command
   | Checkout CheckoutCommand
   | Order OrderCommand
   | Suggestion SuggestionCommand
+  deriving stock (Show, Eq)
 
 favoritesAddParser :: Parser FavoritesCommand
 favoritesAddParser =

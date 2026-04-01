@@ -23,7 +23,7 @@ newtype CentPrice = CentPrice Int
 instance FromJSON CentPrice
 instance ToJSON CentPrice
 
-newtype ListingId = ListingId Text deriving stock (Generic, Show, Eq)
+newtype ListingId = ListingId Text deriving stock (Generic, Show, Eq, Read)
 instance FromJSON ListingId
 instance ToJSON ListingId
 
@@ -142,6 +142,7 @@ instance FromJSON BasketVersion
 instance ToJSON BasketVersion
 
 data Item = Item {listingId :: ListingId, quantity :: Maybe Qty}
+  deriving stock (Show, Eq)
 
 data Change = Change
   { id :: Text
