@@ -53,12 +53,13 @@ import Options.Applicative (
 import Options.Applicative.Help (Doc, vsep)
 import Paths_korb (version)
 import ReweApi.Types (
-  EbonId,
+  EbonId (..),
   Item (..),
   ItemId (..),
   ListingId (..),
   OrderId (..),
-  ProductId,
+  ProductId (..),
+  Qty (..),
   SearchAttribute (..),
   TimeslotId (..),
  )
@@ -94,8 +95,8 @@ data Command
 favoritesAddParser :: Parser FavoritesCommand
 favoritesAddParser =
   FavoritesAdd
-    <$> argument auto (metavar "LISTING_ID")
-    <*> argument auto (metavar "PRODUCT_ID")
+    <$> argument (ListingId <$> str) (metavar "LISTING_ID")
+    <*> argument (ProductId <$> str) (metavar "PRODUCT_ID")
 
 uuidArg :: forall a. (Text -> a) -> String -> String -> Parser a
 uuidArg wrap metaName errMsg = argument (eitherReader parse) (metavar metaName)
@@ -107,7 +108,7 @@ uuidArg wrap metaName errMsg = argument (eitherReader parse) (metavar metaName)
 
 favoritesRemoveParser :: Parser FavoritesCommand
 favoritesRemoveParser =
-  FavoritesRemove <$> argument auto (metavar "ITEM_ID")
+  FavoritesRemove <$> argument (ItemId <$> str) (metavar "ITEM_ID")
 
 favoritesFilterParser :: Parser FavoritesCommand
 favoritesFilterParser = FavoritesFilter <$> argument str (metavar "QUERY")
@@ -217,7 +218,7 @@ checkoutParser =
 
 ebonDownloadParser :: Parser EbonCommand
 ebonDownloadParser =
-  (EbonDownload <$> argument auto (metavar "EBON_ID"))
+  (EbonDownload <$> argument (EbonId <$> str) (metavar "EBON_ID"))
     <*> option
       str
       (long "output" <> help "Output file path" <> metavar "FILE" <> value "ebon.pdf")
@@ -239,9 +240,12 @@ ebonParser =
 basketAddParser :: Parser BasketCommand
 basketAddParser =
   (\listingId quantity -> BasketAdd Item{listingId, quantity})
-    <$> argument auto (metavar "LISTING_ID")
+    <$> argument (ListingId <$> str) (metavar "LISTING_ID")
     <*> optional
-      (option auto (long "qty" <> help "Absolute quantity (default: 1). Set 0 to remove"))
+      ( option
+          (Qty <$> auto)
+          (long "qty" <> help "Absolute quantity (default: 1). Set 0 to remove")
+      )
 
 basketParser :: Parser Command
 basketParser =

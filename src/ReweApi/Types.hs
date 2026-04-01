@@ -11,8 +11,7 @@ import Data.Aeson (
   genericParseJSON,
  )
 import Data.Text (Text, pack, toLower)
-import Data.Time (UTCTime, ZonedTime)
-import Data.UUID (UUID)
+import Data.Time (ZonedTime)
 import GHC.Generics (Generic)
 
 -- Shared primitives
@@ -24,15 +23,15 @@ newtype CentPrice = CentPrice Int
 instance FromJSON CentPrice
 instance ToJSON CentPrice
 
-newtype ListingId = ListingId Text deriving stock (Generic, Show, Eq, Read)
+newtype ListingId = ListingId Text deriving stock (Generic, Show, Eq)
 instance FromJSON ListingId
 instance ToJSON ListingId
 
-newtype ProductId = ProductId Text deriving stock (Generic, Show, Eq, Ord, Read)
+newtype ProductId = ProductId Text deriving stock (Generic, Show, Eq, Ord)
 instance FromJSON ProductId
 instance ToJSON ProductId
 
-newtype ItemId = ItemId UUID deriving stock (Generic, Show, Eq, Read)
+newtype ItemId = ItemId Text deriving stock (Generic, Show, Eq)
 instance FromJSON ItemId
 instance ToJSON ItemId
 
@@ -134,7 +133,7 @@ newtype BasketId = BasketId Text deriving stock (Generic, Show, Eq)
 instance FromJSON BasketId
 instance ToJSON BasketId
 
-newtype Qty = Qty Int deriving stock (Eq, Show, Generic, Read)
+newtype Qty = Qty Int deriving stock (Eq, Show, Generic)
 instance FromJSON Qty
 instance ToJSON Qty
 
@@ -320,8 +319,8 @@ instance ToJSON OrderCancelResponse
 -- Order history (GET /orders/history)
 
 data OrderTimeSlot = OrderTimeSlot
-  { firstSlotDate :: UTCTime
-  , lastSlotDate :: UTCTime
+  { firstSlotDate :: Text
+  , lastSlotDate :: Text
   }
   deriving stock (Generic, Show, Eq)
 instance FromJSON OrderTimeSlot
@@ -476,7 +475,7 @@ instance ToJSON ReserveTimeslotResponse
 
 -- Ebons (GET /ebons)
 
-newtype EbonId = EbonId Text deriving stock (Generic, Show, Eq, Read)
+newtype EbonId = EbonId Text deriving stock (Generic, Show, Eq)
 instance FromJSON EbonId
 instance ToJSON EbonId
 
