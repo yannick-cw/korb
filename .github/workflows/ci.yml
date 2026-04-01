@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.12'
+
+      - name: Cache cabal store
+        uses: actions/cache@v4
+        with:
+          path: ~/.cabal/store
+          key: ci-cabal-${{ hashFiles('korb.cabal') }}
+          restore-keys: ci-cabal-
+
+      - name: Create placeholder certs for compilation
+        run: |
+          mkdir -p certs/mobile-clients-api.rewe.de
+          echo "placeholder" > certs/mobile-clients-api.rewe.de/private.pem
+          echo "placeholder" > certs/mobile-clients-api.rewe.de/private.key
+
+      - name: Setup Lean
+        run: |
+          curl -sSf https://elan.lean-lang.org/elan-init.sh | sh -s -- -y
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - name: Build Lean binary
+        run: |
+          cd leanKorb
+          lake build
+
+      - name: Build
+        run: |
+          cabal update
+          cabal build
+
+      - name: Test
+        run: cabal test
