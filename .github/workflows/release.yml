@@ -1,0 +1,101 @@
+name: Build Linux Binary
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux-binary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.12'
+
+      - name: Cache cabal store
+        uses: actions/cache@v4
+        with:
+          path: ~/.cabal/store
+          key: linux-cabal-${{ hashFiles('korb.cabal') }}
+          restore-keys: linux-cabal-
+
+      - name: Write mTLS certs
+        env:
+          MTLS_CERT_PEM: ${{ secrets.MTLS_CERT_PEM }}
+          MTLS_CERT_KEY: ${{ secrets.MTLS_CERT_KEY }}
+        run: |
+          mkdir -p certs/mobile-clients-api.rewe.de
+          printf '%s\n' "$MTLS_CERT_PEM" > certs/mobile-clients-api.rewe.de/private.pem
+          printf '%s\n' "$MTLS_CERT_KEY" > certs/mobile-clients-api.rewe.de/private.key
+
+      - name: Verify certs exist
+        run: |
+          ls -la certs/mobile-clients-api.rewe.de/
+          head -1 certs/mobile-clients-api.rewe.de/private.pem
+
+      - name: Build
+        run: |
+          cabal update
+          cabal build
+
+      - name: Strip and prepare binary
+        run: |
+          cp $(cabal list-bin korb) korb-x86_64-linux
+          strip korb-x86_64-linux
+
+      - name: Upload to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" korb-x86_64-linux
+
+  macos-intel:
+    if: github.event_name == 'release'
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.12'
+
+      - name: Cache cabal store
+        uses: actions/cache@v4
+        with:
+          path: ~/.cabal/store
+          key: macos-intel-cabal-${{ hashFiles('korb.cabal') }}
+          restore-keys: macos-intel-cabal-
+
+      - name: Write mTLS certs
+        env:
+          MTLS_CERT_PEM: ${{ secrets.MTLS_CERT_PEM }}
+          MTLS_CERT_KEY: ${{ secrets.MTLS_CERT_KEY }}
+        run: |
+          mkdir -p certs/mobile-clients-api.rewe.de
+          printf '%s\n' "$MTLS_CERT_PEM" > certs/mobile-clients-api.rewe.de/private.pem
+          printf '%s\n' "$MTLS_CERT_KEY" > certs/mobile-clients-api.rewe.de/private.key
+
+      - name: Build
+        run: |
+          cabal update
+          cabal build
+
+      - name: Strip and prepare binary
+        run: |
+          cp $(cabal list-bin korb) korb-x86_64-macos
+          strip korb-x86_64-macos
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" korb-x86_64-macos

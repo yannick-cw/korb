@@ -3,10 +3,10 @@ set -euo pipefail
 
 VERSION="${1:?Usage: ./release.sh <version> (e.g. 0.2.0)}"
 TAG="v${VERSION}"
-BINARY_NAME="korb-aarch64-macos"
+MACOS_BINARY="korb-aarch64-macos"
 
-if git tag -l "${TAG}" | grep -q "${TAG}"; then
-  echo "Error: tag ${TAG} already exists"
+if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
+  echo "Error: tag ${TAG} already exists on remote"
   exit 1
 fi
 
@@ -18,27 +18,25 @@ fi
 echo "=== Updating version in korb.cabal ==="
 sed -i '' "s/^version:.*$/version:            ${VERSION}.0/" korb.cabal
 
-echo "=== Building korb ${VERSION} ==="
+echo "=== Building macOS binary ==="
 cabal build
-
-echo "=== Copying and stripping binary ==="
 BUILT=$(cabal list-bin korb)
-cp "${BUILT}" "${BINARY_NAME}"
-strip "${BINARY_NAME}"
-STRIPPED_SIZE=$(du -h "${BINARY_NAME}" | cut -f1)
-echo "Binary: ${BINARY_NAME} (${STRIPPED_SIZE})"
+cp "${BUILT}" "${MACOS_BINARY}"
+strip "${MACOS_BINARY}"
+echo "macOS binary: ${MACOS_BINARY} ($(du -h "${MACOS_BINARY}" | cut -f1))"
+
+echo "=== Committing and pushing ==="
 git add korb.cabal
 git commit -m "Release ${TAG}"
-git tag "${TAG}"
-
-echo "=== Pushing to GitHub ==="
 git push origin main
-git push origin "${TAG}"
 
-echo "=== Creating GitHub release ==="
-gh release create "${TAG}" "${BINARY_NAME}" \
+echo "=== Creating GitHub release (creates tag, uploads macOS binary) ==="
+echo "=== Linux binary will be built and uploaded by GitHub Actions ==="
+gh release create "${TAG}" "${MACOS_BINARY}" \
   --title "${TAG}" \
+  --target main \
   --generate-notes
 
-rm "${BINARY_NAME}"
+rm "${MACOS_BINARY}"
 echo "=== Done: ${TAG} ==="
+echo "Linux binary will appear on the release once the GitHub Action completes."
