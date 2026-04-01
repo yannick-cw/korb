@@ -61,7 +61,7 @@ genLineItem prod = do
       { quantity = qty
       , price = CentPrice 1
       , totalPrice = CentPrice 10
-      , grammage = "1 Stück"
+      , grammage = Just "1 Stück"
       , product = prod
       , changes = Nothing
       }

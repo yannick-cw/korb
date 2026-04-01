@@ -156,7 +156,7 @@ data LineItem = LineItem
   { quantity :: Int
   , price :: CentPrice
   , totalPrice :: CentPrice
-  , grammage :: Text
+  , grammage :: Maybe Text
   , product :: Product
   , changes :: Maybe [Change]
   }

@@ -104,9 +104,14 @@ decodeResponse :: (FromJSON res, Show a) => a -> BsResponse -> IOE ApiError res
 decodeResponse reqName response =
   case eitherDecodeStrict (responseBody response) of
     Right res -> pure res
-    Left _ ->
+    Left err ->
       throwE $
-        ApiError (pack (Prelude.show reqName) <> " - " <> decodeUtf8 (responseBody response))
+        ApiError
+          ( "Parsing Error: "
+              <> pack err
+              <> " - "
+              <> (pack (Prelude.show reqName) <> " - " <> decodeUtf8 (responseBody response))
+          )
 
 stealthHeaders :: Option 'Https
 stealthHeaders =
