@@ -163,8 +163,8 @@ searchAttributeParser =
     <$> sequenceA
       [ flag [] [Organic] (long "organic" <> help "Filter only organic products")
       , flag [] [Regional] (long "regional" <> help "Filter only regional products")
-      , flag [] [Regional] (long "vegan" <> help "Filter only vegan products")
-      , flag [] [Regional] (long "vegetarian" <> help "Filter only vegetarian products")
+      , flag [] [Vegan] (long "vegan" <> help "Filter only vegan products")
+      , flag [] [Vegetarian] (long "vegetarian" <> help "Filter only vegetarian products")
       ]
 
 searchParser :: Parser Command
