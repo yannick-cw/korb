@@ -3,77 +3,55 @@
 module HttpClient (
   HttpClient (..),
   mkHttpClient,
+  Headers,
+  QueryParams,
+  ApiUrl (..),
 ) where
 
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except (ExceptT (..), throwE, withExceptT)
-import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict)
+import Control.Monad (unless)
+import Control.Monad.Trans.Except (throwE)
+import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict, encode)
 import Data.ByteString (ByteString)
+import Data.ByteString qualified as BS
 import Data.FileEmbed (embedFile)
-import Data.Text (pack)
-import Data.Text.Encoding (decodeUtf8)
-import Errors (ApiError (ApiError), IOE)
-import Network.Connection (TLSSettings (..))
-import Network.HTTP.Client (Manager)
-import Network.HTTP.Client.TLS (mkManagerSettings, newTlsManagerWith)
-import Network.HTTP.Req (
-  BsResponse,
-  DELETE (..),
-  FormUrlEncodedParam,
-  GET (..),
-  HttpConfig (..),
-  NoReqBody (..),
-  Option,
-  PATCH (..),
-  POST (..),
-  ReqBodyJson (..),
-  ReqBodyUrlEnc (..),
-  Scheme (Https),
-  Url,
-  bsResponse,
-  defaultHttpConfig,
-  header,
-  req,
-  responseBody,
-  runReq,
+import Data.Text (Text, intercalate, pack, unpack)
+import Data.Text qualified as TIO
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import Errors (
+  ApiError (ApiError),
+  AppError,
+  FileError (..),
+  IOE,
+  LiftError (liftE),
+  liftIOE,
  )
-import Network.TLS (
-  ClientHooks (..),
-  ClientParams (..),
-  Shared (..),
-  credentialLoadX509FromMemory,
-  defaultParamsClient,
- )
-import System.X509 (getSystemCertificateStore)
+import System.Directory (doesFileExist, getTemporaryDirectory)
+import System.Exit (ExitCode (..))
+import System.FilePath ((</>))
+import System.Process (readProcessWithExitCode)
+
+type Headers = [(Text, Text)]
+type QueryParams = [(Text, Text)]
+newtype ApiUrl = ApiUrl Text deriving stock (Show)
+newtype CertPath = CertPath Text
+newtype KeyPath = KeyPath Text
+data Method = GET | POST | PATCH | DELETE deriving stock (Show)
 
 data HttpClient = HttpClient
-  { get :: forall res. (FromJSON res) => Url 'Https -> Option 'Https -> IOE ApiError res
-  , delete :: forall res. (FromJSON res) => Url 'Https -> Option 'Https -> IOE ApiError res
+  { get :: forall res. (FromJSON res) => ApiUrl -> Headers -> QueryParams -> IOE ApiError res
+  , delete ::
+      forall res. (FromJSON res) => ApiUrl -> Headers -> QueryParams -> IOE ApiError res
   , post ::
       forall res req.
-      (FromJSON res, ToJSON req) => req -> Url 'Https -> Option 'Https -> IOE ApiError res
+      (FromJSON res, ToJSON req) => req -> ApiUrl -> Headers -> QueryParams -> IOE ApiError res
   , patch ::
       forall res req.
-      (FromJSON res, ToJSON req) => req -> Url 'Https -> Option 'Https -> IOE ApiError res
+      (FromJSON res, ToJSON req) => req -> ApiUrl -> Headers -> QueryParams -> IOE ApiError res
   , urlFromEncodedPost ::
-      forall res. (FromJSON res) => FormUrlEncodedParam -> Url 'Https -> IOE ApiError res
+      forall res. (FromJSON res) => QueryParams -> ApiUrl -> IOE ApiError res
   , getBytes ::
-      Url 'Https -> Option 'Https -> IOE ApiError ByteString
+      ApiUrl -> Headers -> QueryParams -> IOE ApiError ByteString
   }
-
-mkHttpClient :: IOE ApiError HttpClient
-mkHttpClient = do
-  manager <- mTlsManager
-  let httpConfig = defaultHttpConfig{httpConfigAltManager = Just manager}
-  pure
-    HttpClient
-      { get = getRewe httpConfig
-      , delete = deleteRewe httpConfig
-      , post = postRewe httpConfig
-      , patch = patchRewe httpConfig
-      , urlFromEncodedPost = urlFormEncodeRewe httpConfig
-      , getBytes = getReweRaw httpConfig
-      }
 
 certPem :: ByteString
 certPem = $(embedFile "certs/mobile-clients-api.rewe.de/private.pem")
@@ -81,80 +59,127 @@ certPem = $(embedFile "certs/mobile-clients-api.rewe.de/private.pem")
 certKey :: ByteString
 certKey = $(embedFile "certs/mobile-clients-api.rewe.de/private.key")
 
-mTlsManager :: IOE ApiError Manager
-mTlsManager = do
-  credential <-
-    withExceptT (ApiError . pack) $
-      ExceptT $
-        pure (Network.TLS.credentialLoadX509FromMemory certPem certKey)
-  let defaultClientParams = Network.TLS.defaultParamsClient "mobile-clients-api.rewe.de" ""
-  caStore <- liftIO getSystemCertificateStore
-  let clientParams =
-        defaultClientParams
-          { clientShared = defaultClientParams.clientShared{sharedCAStore = caStore}
-          , clientHooks =
-              defaultClientParams.clientHooks
-                { onCertificateRequest = \_ -> pure (Just credential)
-                }
-          }
-  let tlsSettings = TLSSettings clientParams
-  newTlsManagerWith (mkManagerSettings tlsSettings Nothing)
+mkHttpClient :: IOE AppError HttpClient
+mkHttpClient = do
+  (certPath, keyPath) <- liftE writeCertsToTemp
+  pure
+    HttpClient
+      { get = \url hdrs qps -> curlJson certPath keyPath GET url hdrs qps Nothing
+      , delete = \url hdrs qps -> curlJson certPath keyPath DELETE url hdrs qps Nothing
+      , post = \body url hdrs qps ->
+          curlJson
+            certPath
+            keyPath
+            POST
+            url
+            hdrs
+            qps
+            (Just $ decodeUtf8 $ BS.toStrict $ encode body)
+      , patch = \body url hdrs qps ->
+          curlJson
+            certPath
+            keyPath
+            PATCH
+            url
+            hdrs
+            qps
+            (Just $ decodeUtf8 $ BS.toStrict $ encode body)
+      , urlFromEncodedPost = curlFormPost
+      , getBytes = curlRaw certPath keyPath
+      }
 
-decodeResponse :: (FromJSON res, Show a) => a -> BsResponse -> IOE ApiError res
-decodeResponse reqName response =
-  case eitherDecodeStrict (responseBody response) of
-    Right res -> pure res
-    Left err ->
-      throwE $
-        ApiError
-          ( "Parsing Error: "
-              <> pack err
-              <> " - "
-              <> (pack (Prelude.show reqName) <> " - " <> decodeUtf8 (responseBody response))
-          )
+writeCertsToTemp :: IOE FileError (CertPath, KeyPath)
+writeCertsToTemp = liftIOE FileError $ do
+  tmpDir <- getTemporaryDirectory
+  let certPath = tmpDir </> "korb-cert.pem"
+  let keyPath = tmpDir </> "korb-key.pem"
+  certExists <- doesFileExist certPath
+  unless certExists $ BS.writeFile certPath certPem
+  keyExists <- doesFileExist keyPath
+  unless keyExists $ BS.writeFile keyPath certKey
+  pure (CertPath $ pack certPath, KeyPath $ pack keyPath)
 
-stealthHeaders :: Option 'Https
+stealthHeaders :: [(Text, Text)]
 stealthHeaders =
-  header "user-agent" "REWE-Mobile-Client/6.0.202603161111 iOS/26.2.1 Phone/iPhone_15"
-    <> header "rd-is-pickup-station" "false"
-    <> header "rd-is-lsfk" "false"
-    <> header "rd-user-consent" "{\"conversionOptimization\": 1}"
-    <> header "accept-language" "en-GB,en;q=0.9"
-    <> header "accept" "*/*"
-    <> header "priority" "u=3"
+  [ ("user-agent", "REWE-Mobile-Client/6.0.202603161111 iOS/26.2.1 Phone/iPhone_15")
+  , ("rd-is-pickup-station", "false")
+  , ("rd-is-lsfk", "false")
+  , ("rd-user-consent", "{\"conversionOptimization\": 1}")
+  , ("accept-language", "en-GB,en;q=0.9")
+  , ("accept", "*/*")
+  , ("priority", "u=3")
+  ]
 
-deleteRewe ::
-  (FromJSON res) => HttpConfig -> Url 'Https -> Option 'Https -> IOE ApiError res
-deleteRewe config url options =
-  decodeResponse url
-    =<< runReq config (req DELETE url NoReqBody bsResponse (options <> stealthHeaders))
+buildUrl :: ApiUrl -> QueryParams -> Text
+buildUrl (ApiUrl base) [] = base
+buildUrl (ApiUrl base) qps = base <> "?" <> buildParams qps
 
-getRewe :: (FromJSON res) => HttpConfig -> Url 'Https -> Option 'Https -> IOE ApiError res
-getRewe config url options =
-  decodeResponse url
-    =<< runReq config (req GET url NoReqBody bsResponse (options <> stealthHeaders))
+buildParams :: QueryParams -> Text
+buildParams qps = intercalate "&" ((\(k, v) -> k <> "=" <> v) <$> qps)
 
-getReweRaw :: HttpConfig -> Url 'Https -> Option 'Https -> IOE ApiError ByteString
-getReweRaw config url options =
-  responseBody
-    <$> runReq config (req GET url NoReqBody bsResponse (options <> stealthHeaders))
+headersToArgs :: [(Text, Text)] -> [Text]
+headersToArgs = concatMap (\(k, v) -> ["-H", k <> ": " <> v])
 
-urlFormEncodeRewe ::
-  (FromJSON res) => HttpConfig -> FormUrlEncodedParam -> Url 'Https -> IOE ApiError res
-urlFormEncodeRewe config body url =
-  decodeResponse url
-    =<< runReq config (req POST url (ReqBodyUrlEnc body) bsResponse stealthHeaders)
+curlJson ::
+  (FromJSON res) =>
+  CertPath ->
+  KeyPath ->
+  Method ->
+  ApiUrl ->
+  Headers ->
+  QueryParams ->
+  Maybe Text ->
+  IOE ApiError res
+curlJson (CertPath certPath) (KeyPath keyPath) method url hdrs qps mBody = do
+  let fullUrl = buildUrl url qps
+  let bodyArgs = case mBody of
+        Nothing -> []
+        Just b -> ["-H", "Content-Type: application/json", "-d", b]
+  let args =
+        ["-s", "-f", "-X", TIO.show method, "--cert", certPath, "--key", keyPath]
+          ++ headersToArgs stealthHeaders
+          ++ headersToArgs hdrs
+          ++ bodyArgs
+          ++ [fullUrl]
+  runCurl fullUrl args >>= decodeJson fullUrl
 
-postRewe ::
-  (FromJSON res, ToJSON req) =>
-  HttpConfig -> req -> Url 'Https -> Option 'Https -> IOE ApiError res
-postRewe config body url options =
-  decodeResponse url
-    =<< runReq config (req POST url (ReqBodyJson body) bsResponse (options <> stealthHeaders))
+curlFormPost :: (FromJSON res) => QueryParams -> ApiUrl -> IOE ApiError res
+curlFormPost formBodyParams (ApiUrl url) = do
+  let formBody = buildParams formBodyParams
+  let args =
+        [ "-s"
+        , "-f"
+        , "-X"
+        , TIO.show POST
+        , "-H"
+        , "Content-Type: application/x-www-form-urlencoded"
+        , "-d"
+        , formBody
+        , url
+        ]
+  runCurl url args >>= decodeJson url
 
-patchRewe ::
-  (FromJSON res, ToJSON req) =>
-  HttpConfig -> req -> Url 'Https -> Option 'Https -> IOE ApiError res
-patchRewe config body url options =
-  decodeResponse url
-    =<< runReq config (req PATCH url (ReqBodyJson body) bsResponse (options <> stealthHeaders))
+curlRaw ::
+  CertPath -> KeyPath -> ApiUrl -> Headers -> QueryParams -> IOE ApiError ByteString
+curlRaw (CertPath certPath) (KeyPath keyPath) url hdrs qps = do
+  let fullUrl = buildUrl url qps
+  let args =
+        ["-s", "-f", "--cert", certPath, "--key", keyPath]
+          ++ headersToArgs stealthHeaders
+          ++ headersToArgs hdrs
+          ++ [fullUrl]
+  encodeUtf8 <$> runCurl fullUrl args
+
+runCurl :: Text -> [Text] -> IOE ApiError Text
+runCurl url args = do
+  (exitCode, stdout, stderr) <-
+    liftIOE ApiError $ readProcessWithExitCode "curl" (unpack <$> args) ""
+  case exitCode of
+    ExitFailure 22 -> throwE $ ApiError ("HTTP error - " <> url <> " - " <> pack stdout)
+    ExitFailure code -> throwE $ ApiError ("curl failed (exit " <> pack (show code) <> "): " <> pack stderr)
+    ExitSuccess -> pure (pack stdout)
+
+decodeJson :: (FromJSON res) => Text -> Text -> IOE ApiError res
+decodeJson url stdout = case eitherDecodeStrict (encodeUtf8 stdout) of
+  Right res -> pure res
+  Left err -> throwE $ ApiError ("Parsing Error: " <> pack err <> " - " <> url <> " - " <> stdout)

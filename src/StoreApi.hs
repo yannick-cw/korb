@@ -13,8 +13,7 @@ import Data.ByteString.Lazy.Char8 qualified as BL
 import Data.Text (Text)
 import Errors (ApiError, IOE)
 import GHC.Generics (Generic)
-import HttpClient (HttpClient (..))
-import Network.HTTP.Req (https, (/:))
+import HttpClient (ApiUrl (..), HttpClient (..))
 import ReweApi.Types (ReweResponse (..))
 
 printValue :: (ToJSON a) => Bool -> a -> IOE e ()
@@ -47,7 +46,7 @@ instance ToJSON ServiceArea
 searchForStores :: HttpClient -> ZipCode -> IOE ApiError [PickupMarket]
 searchForStores HttpClient{get} (ZipCode plz) = do
   res :: ReweResponse ServiceArea <-
-    get (https "mobile-clients-api.rewe.de" /: "api" /: "service-portfolio" /: plz) mempty
+    get (ApiUrl ("https://mobile-clients-api.rewe.de/api/service-portfolio/" <> plz)) [] []
   pure $ maybe [] (.pickupMarkets) res.data_.servicePortfolio
 
 storeExists :: HttpClient -> WwIdent -> ZipCode -> IOE ApiError Bool
