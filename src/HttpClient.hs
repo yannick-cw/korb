@@ -13,6 +13,7 @@ import Control.Monad.Trans.Except (throwE)
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict, encode)
 import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
+import Data.Maybe (fromMaybe)
 import Data.FileEmbed (embedFile)
 import Data.Text (Text, intercalate, pack, unpack)
 import Data.Text qualified as TIO
@@ -28,6 +29,7 @@ import Errors (
 import System.Directory (doesFileExist, getTemporaryDirectory)
 import System.Exit (ExitCode (..))
 import System.FilePath ((</>))
+import System.Environment (lookupEnv)
 import System.Process (readProcessWithExitCode)
 
 type Headers = [(Text, Text)]
@@ -62,12 +64,14 @@ certKey = $(embedFile "certs/mobile-clients-api.rewe.de/private.key")
 mkHttpClient :: IOE AppError HttpClient
 mkHttpClient = do
   (certPath, keyPath) <- liftE writeCertsToTemp
+  curlBin <- liftE $ liftIOE FileError $ pack . fromMaybe "curl" <$> lookupEnv "KORB_CURL"
   pure
     HttpClient
-      { get = \url hdrs qps -> curlJson certPath keyPath GET url hdrs qps Nothing
-      , delete = \url hdrs qps -> curlJson certPath keyPath DELETE url hdrs qps Nothing
+      { get = \url hdrs qps -> curlJson curlBin certPath keyPath GET url hdrs qps Nothing
+      , delete = \url hdrs qps -> curlJson curlBin certPath keyPath DELETE url hdrs qps Nothing
       , post = \body url hdrs qps ->
           curlJson
+            curlBin
             certPath
             keyPath
             POST
@@ -77,6 +81,7 @@ mkHttpClient = do
             (Just $ decodeUtf8 $ BS.toStrict $ encode body)
       , patch = \body url hdrs qps ->
           curlJson
+            curlBin
             certPath
             keyPath
             PATCH
@@ -84,8 +89,8 @@ mkHttpClient = do
             hdrs
             qps
             (Just $ decodeUtf8 $ BS.toStrict $ encode body)
-      , urlFromEncodedPost = curlFormPost
-      , getBytes = curlRaw certPath keyPath
+      , urlFromEncodedPost = curlFormPost curlBin
+      , getBytes = curlRaw curlBin certPath keyPath
       }
 
 writeCertsToTemp :: IOE FileError (CertPath, KeyPath)
@@ -101,13 +106,9 @@ writeCertsToTemp = liftIOE FileError $ do
 
 stealthHeaders :: [(Text, Text)]
 stealthHeaders =
-  [ ("user-agent", "REWE-Mobile-Client/6.0.202603161111 iOS/26.2.1 Phone/iPhone_15")
-  , ("rd-is-pickup-station", "false")
+  [ ("rd-is-pickup-station", "false")
   , ("rd-is-lsfk", "false")
   , ("rd-user-consent", "{\"conversionOptimization\": 1}")
-  , ("accept-language", "en-GB,en;q=0.9")
-  , ("accept", "*/*")
-  , ("priority", "u=3")
   ]
 
 buildUrl :: ApiUrl -> QueryParams -> Text
@@ -122,6 +123,7 @@ headersToArgs = concatMap (\(k, v) -> ["-H", k <> ": " <> v])
 
 curlJson ::
   (FromJSON res) =>
+  Text ->
   CertPath ->
   KeyPath ->
   Method ->
@@ -130,7 +132,7 @@ curlJson ::
   QueryParams ->
   Maybe Text ->
   IOE ApiError res
-curlJson (CertPath certPath) (KeyPath keyPath) method url hdrs qps mBody = do
+curlJson curlBin (CertPath certPath) (KeyPath keyPath) method url hdrs qps mBody = do
   let fullUrl = buildUrl url qps
   let bodyArgs = case mBody of
         Nothing -> []
@@ -141,10 +143,10 @@ curlJson (CertPath certPath) (KeyPath keyPath) method url hdrs qps mBody = do
           ++ headersToArgs hdrs
           ++ bodyArgs
           ++ [fullUrl]
-  runCurl fullUrl args >>= decodeJson fullUrl
+  runCurl curlBin fullUrl args >>= decodeJson fullUrl
 
-curlFormPost :: (FromJSON res) => QueryParams -> ApiUrl -> IOE ApiError res
-curlFormPost formBodyParams (ApiUrl url) = do
+curlFormPost :: (FromJSON res) => Text -> QueryParams -> ApiUrl -> IOE ApiError res
+curlFormPost curlBin formBodyParams (ApiUrl url) = do
   let formBody = buildParams formBodyParams
   let args =
         [ "-s"
@@ -157,23 +159,23 @@ curlFormPost formBodyParams (ApiUrl url) = do
         , formBody
         , url
         ]
-  runCurl url args >>= decodeJson url
+  runCurl curlBin url args >>= decodeJson url
 
 curlRaw ::
-  CertPath -> KeyPath -> ApiUrl -> Headers -> QueryParams -> IOE ApiError ByteString
-curlRaw (CertPath certPath) (KeyPath keyPath) url hdrs qps = do
+  Text -> CertPath -> KeyPath -> ApiUrl -> Headers -> QueryParams -> IOE ApiError ByteString
+curlRaw curlBin (CertPath certPath) (KeyPath keyPath) url hdrs qps = do
   let fullUrl = buildUrl url qps
   let args =
         ["-s", "-f", "--cert", certPath, "--key", keyPath]
           ++ headersToArgs stealthHeaders
           ++ headersToArgs hdrs
           ++ [fullUrl]
-  encodeUtf8 <$> runCurl fullUrl args
+  encodeUtf8 <$> runCurl curlBin fullUrl args
 
-runCurl :: Text -> [Text] -> IOE ApiError Text
-runCurl url args = do
+runCurl :: Text -> Text -> [Text] -> IOE ApiError Text
+runCurl curlBin url args = do
   (exitCode, stdout, stderr) <-
-    liftIOE ApiError $ readProcessWithExitCode "curl" (unpack <$> args) ""
+    liftIOE ApiError $ readProcessWithExitCode (unpack curlBin) (unpack <$> args) ""
   case exitCode of
     ExitFailure 22 -> throwE $ ApiError ("HTTP error - " <> url <> " - " <> pack stdout)
     ExitFailure code -> throwE $ ApiError ("curl failed (exit " <> pack (show code) <> "): " <> pack stderr)

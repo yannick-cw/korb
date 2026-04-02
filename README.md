@@ -1,3 +1,7 @@
+## // Update: Rewe not yet ready for agentic commerce
+
+Rewe seems to not like independent agentic commerce and is actively blocking this CLI, fair choice, less shopping from me, but understandable at the same time. Unfortunately this means the CLI might or might not work depending on their cloudflare tls fingerprinting rules.
+
 ## // korb
 
 The `korb` CLI allows using the REWE APIs programmatically to create baskets and order them for pickup to your local REWE market.
@@ -19,6 +23,8 @@ In the directory that store the shopping list file I also have a claude.md expla
 The **magic** is the generated template of what I always order. Just tell an agent to use `korb orders history` to identify commonly ordered items.
 
 ## // Installation
+
+**DON'T: as of right now krob does not work - rewe does not want it to work**
 
 ### Dependencies
 
