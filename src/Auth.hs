@@ -32,8 +32,7 @@ import Errors (
   liftE,
   liftIOE,
  )
-import HttpClient (HttpClient (..))
-import Network.HTTP.Req (FormUrlEncodedParam, Scheme (Https), Url, https, (/:), (=:))
+import HttpClient (ApiUrl (ApiUrl), HttpClient (..), QueryParams)
 import System.Directory (createDirectoryIfMissing, getXdgDirectory)
 import System.Directory.OsPath (XdgDirectory (..))
 import System.FilePath ((</>))
@@ -107,13 +106,14 @@ extractCodeFromRedirect redirect =
         AuthError
           "No auth code in redirect found - retry flow - make sure 'de.rewe.app..' is correct"
 
-reweFormEncodedBody :: AuthCode -> PKCEVerifier -> FormUrlEncodedParam
+reweFormEncodedBody :: AuthCode -> PKCEVerifier -> QueryParams
 reweFormEncodedBody (AuthCode code) (PKCEVerifier verifier) =
-  "grant_type" =: ("authorization_code" :: Text)
-    <> "client_id" =: ("reweios" :: Text)
-    <> "code" =: code
-    <> "redirect_uri" =: ("de.rewe.app://redirect" :: Text)
-    <> "code_verifier" =: decodeUtf8 verifier
+  [ ("grant_type", "authorization_code")
+  , ("client_id", "reweios")
+  , ("code", code)
+  , ("redirect_uri", "de.rewe.app://redirect")
+  , ("code_verifier", decodeUtf8 verifier)
+  ]
 
 decodeJWT :: AccessToken -> Either AuthError Int64
 decodeJWT (AccessToken tkn) = do
@@ -124,15 +124,15 @@ decodeJWT (AccessToken tkn) = do
     Right (Exp expiry) -> pure expiry
     Left err -> Left (AuthError $ pack err)
 
-refreshFormBody :: RefreshToken -> FormUrlEncodedParam
+refreshFormBody :: RefreshToken -> QueryParams
 refreshFormBody (RefreshToken token) =
-  "grant_type" =: ("refresh_token" :: Text)
-    <> "client_id" =: ("reweios" :: Text)
-    <> "refresh_token" =: token
+  [ ("grant_type", "refresh_token")
+  , ("client_id", "reweios")
+  , ("refresh_token", token)
+  ]
 
-tokenEndpoint :: Url 'Https
-tokenEndpoint =
-  https "account.rewe.de" /: "realms" /: "sso" /: "protocol" /: "openid-connect" /: "token"
+tokenEndpoint :: ApiUrl
+tokenEndpoint = ApiUrl "https://account.rewe.de/realms/sso/protocol/openid-connect/token"
 
 refreshFlow :: TokenStore -> HttpClient -> IOE AppError AccessToken
 refreshFlow store HttpClient{urlFromEncodedPost} = do

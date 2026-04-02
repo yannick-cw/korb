@@ -38,7 +38,6 @@ import Data.Map.Strict qualified as Map
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.Ord (Down (Down))
 import Data.Text (Text, intercalate, isInfixOf, pack, toLower)
-import Data.Text.Encoding (encodeUtf8)
 import Data.Time (TimeZone, ZonedTime, getCurrentTimeZone, utcToZonedTime, zonedTimeToUTC)
 import Data.Traversable (forM)
 import Errors (
@@ -49,17 +48,7 @@ import Errors (
   LiftError (liftE),
   liftIOE,
  )
-import HttpClient (HttpClient (..))
-import Network.HTTP.Req (
-  Option,
-  Scheme (Https),
-  Url,
-  header,
-  https,
-  oAuth2Bearer,
-  (/:),
-  (=:),
- )
+import HttpClient (ApiUrl (..), Headers, HttpClient (..), QueryParams)
 import ReweApi.Types
 import Storage (CurrentStore (..))
 
@@ -96,91 +85,99 @@ data ReweAuthedApi = ReweAuthedApi
   }
 
 newtype RewePublicApi = RewePublicApi
-  { search :: Option 'Https -> IOE ApiError (ReweResponse SearchResponse)
+  { search :: QueryParams -> IOE ApiError (ReweResponse SearchResponse)
   }
 
-apiBase :: Url Https
-apiBase = https "mobile-clients-api.rewe.de" /: "api"
+url :: Text -> ApiUrl
+url path = ApiUrl $ "https://mobile-clients-api.rewe.de/api" <> path
 
 mkRewePublicClient :: HttpClient -> CurrentStore -> RewePublicApi
 mkRewePublicClient (HttpClient{get}) (CurrentStore (WwIdent wwIdent) (ZipCode zipCode)) =
-  let mandatoryHeaders =
-        header "rd-market-id" (encodeUtf8 wwIdent)
-          <> header "rd-postcode" (encodeUtf8 zipCode)
-          <> header "rd-service-types" "PICKUP"
-   in RewePublicApi
-        { search = \options -> get (apiBase /: "products") (options <> mandatoryHeaders)
-        }
+  let mandatoryHeaders :: Headers
+      mandatoryHeaders =
+        [ ("rd-market-id", wwIdent)
+        , ("rd-postcode", zipCode)
+        , ("rd-service-types", "PICKUP")
+        ]
+   in RewePublicApi{search = get (url "/products") mandatoryHeaders}
 
 mkReweAuthedClient :: HttpClient -> Auth -> CurrentStore -> IOE AppError ReweAuthedApi
 mkReweAuthedClient (HttpClient{get, post, delete, patch, getBytes}) auth (CurrentStore (WwIdent wwIdent) (ZipCode zipCode)) = do
   (AccessToken tkn) <- auth.getValidToken
-  let authHeader = oAuth2Bearer (encodeUtf8 tkn)
-  let mandatoryHeaders =
-        header "rd-market-id" (encodeUtf8 wwIdent)
-          <> header "rd-postcode" (encodeUtf8 zipCode)
-          <> header "rd-service-types" "PICKUP"
-          <> authHeader
+  let mandatoryHeaders :: Headers
+      mandatoryHeaders =
+        [ ("rd-market-id", wwIdent)
+        , ("rd-postcode", zipCode)
+        , ("rd-service-types", "PICKUP")
+        , ("Authorization", "Bearer " <> tkn)
+        ]
   pure
     ReweAuthedApi
-      { getFavourites = get (apiBase /: "favorites") mandatoryHeaders
+      { getFavourites = get (url "/favorites") mandatoryHeaders []
       , addFavourite = \(FavoriteListId favListId) listing productId ->
           post
             (AddFavoriteReq listing Nothing productId)
-            (apiBase /: "favorites" /: favListId /: "lineitems")
+            (url ("/favorites/" <> favListId <> "/lineitems"))
             mandatoryHeaders
+            []
       , deleteFavourite = \(FavoriteListId favListId) (ItemId itemId) ->
           delete
-            (apiBase /: "favorites" /: favListId /: "lineitems" /: itemId)
+            (url ("/favorites/" <> favListId <> "/lineitems/" <> itemId))
             mandatoryHeaders
+            []
       , getBaseket =
-          post (BasketReq True) (apiBase /: "baskets") mandatoryHeaders
+          post (BasketReq True) (url "/baskets") mandatoryHeaders []
       , getSlots =
-          get (apiBase /: "timeslots" /: "checkout") mandatoryHeaders
+          get (url "/timeslots/checkout") mandatoryHeaders []
       , addItemToBasket = \(BasketId basketId) (ListingId listingId) qty version ->
           post
             (AddToBasketReq qty version True)
-            (apiBase /: "baskets" /: basketId /: "listings" /: listingId)
+            (url ("/baskets/" <> basketId <> "/listings/" <> listingId))
             mandatoryHeaders
+            []
       , postCheckout = \basketId ->
-          post (CheckoutReq basketId False) (apiBase /: "checkouts") mandatoryHeaders
+          post (CheckoutReq basketId False) (url "/checkouts") mandatoryHeaders []
       , patchCheckoutTimeslot = \basketId (CheckoutId checkoutId) timeslotId ->
           patch
             (PatchTimeslotReq basketId timeslotId)
-            (apiBase /: "checkouts" /: checkoutId /: "timeslots")
+            (url ("/checkouts/" <> checkoutId <> "/timeslots"))
             mandatoryHeaders
+            []
       , reserveTimeslot = \timeslotId ->
           post
             (ReserveTimeslotReq timeslotId)
-            (apiBase /: "timeslots" /: "reservations")
+            (url "/timeslots/reservations")
             mandatoryHeaders
+            []
       , addPayment = \basketId (CheckoutId checkoutId) ->
           patch
             (PatchPaymentReq basketId MarketPayment)
-            (apiBase /: "checkouts" /: checkoutId /: "payments")
+            (url ("/checkouts/" <> checkoutId <> "/payments"))
             mandatoryHeaders
+            []
       , confirmOrder = \(CheckoutId checkoutId) basketId ->
           post
             (ConfirmCheckoutReq basketId)
-            (apiBase /: "checkouts" /: checkoutId /: "confirmations")
+            (url ("/checkouts/" <> checkoutId <> "/confirmations"))
             mandatoryHeaders
+            []
       , postOrder = \(CheckoutId checkoutId) ->
-          post (object []) (apiBase /: "checkouts" /: checkoutId /: "orders") mandatoryHeaders
+          post (object []) (url ("/checkouts/" <> checkoutId <> "/orders")) mandatoryHeaders []
       , getOrders = \opp ->
-          let pageOpt = maybe mempty (\(ObjectsPerPage c) -> "objectsPerPage" =: c) opp
-           in get (apiBase /: "orders" /: "history") (mandatoryHeaders <> pageOpt)
-      , getOrder = \(OrderId orderId) -> get (apiBase /: "orders" /: orderId) mandatoryHeaders
+          let pageQps = maybe [] (\(ObjectsPerPage c) -> [("objectsPerPage", pack (show c))]) opp
+           in get (url "/orders/history") mandatoryHeaders pageQps
+      , getOrder = \(OrderId orderId) -> get (url ("/orders/" <> orderId)) mandatoryHeaders []
       , deleteOrder = \(OrderId orderId) ->
-          delete (apiBase /: "orders" /: orderId) mandatoryHeaders
-      , getEbons = get (apiBase /: "ebons") mandatoryHeaders
-      , getReceipt = \(EbonId ebonId) -> getBytes (apiBase /: "receipts" /: ebonId /: "pdf") mandatoryHeaders
-      , getPurchasedProducts = get (apiBase /: "purchased-products") mandatoryHeaders
+          delete (url ("/orders/" <> orderId)) mandatoryHeaders []
+      , getEbons = get (url "/ebons") mandatoryHeaders []
+      , getReceipt = \(EbonId ebonId) -> getBytes (url ("/receipts/" <> ebonId <> "/pdf")) mandatoryHeaders []
+      , getPurchasedProducts = get (url "/purchased-products") mandatoryHeaders []
       }
 
 searchRewe :: RewePublicApi -> Text -> [SearchAttribute] -> IOE ApiError [Product]
 searchRewe RewePublicApi{search} query attributes = do
   let filters = intercalate "&" ((\a -> "attribute=" <> attributeToText a) <$> attributes)
-  searchRes <- search ("query" =: query <> "filters" =: filters)
+  searchRes <- search [("query", query), ("filters", filters)]
   pure searchRes.data_.products.products
 
 favorites :: ReweAuthedApi -> Maybe Text -> IOE ApiError [Product]

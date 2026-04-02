@@ -20,6 +20,10 @@ The **magic** is the generated template of what I always order. Just tell an age
 
 ## // Installation
 
+### Dependencies
+
+Currently it needs `curl` installed.
+
 ### Binary (recommended)
 
 Download the latest release from [GitHub Releases](https://github.com/yannick-cw/korb/releases):

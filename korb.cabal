@@ -106,13 +106,12 @@ library
         optparse-applicative,
         text,
         uuid,
+        -- TODO: req is not actually needed anymore - this is some weird cabal dependency problem, test
+        -- do not run otherwise
         req,
         aeson-pretty,
         transformers,
-        http-client-tls,
-        tls,
-        crypton-connection,
-        crypton-x509-system,
+        process,
         regex-tdfa,
 
     -- Directories containing source files.
