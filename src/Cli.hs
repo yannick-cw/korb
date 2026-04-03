@@ -40,12 +40,14 @@ import Options.Applicative (
   info,
   infoOption,
   long,
+  many,
   metavar,
   option,
   optional,
   progDesc,
   short,
   str,
+  strOption,
   switch,
   value,
   (<**>),
@@ -62,6 +64,7 @@ import ReweApi.Types (
   ProductId (..),
   Qty (..),
   SearchAttribute (..),
+  Slug (..),
   TimeslotId (..),
  )
 
@@ -90,7 +93,7 @@ newtype SuggestionCommand = ThresholdSuggestion NumberOfSuggestions
 
 data Command
   = Store StoreCommand
-  | Search Text [SearchAttribute]
+  | Search Text [SearchAttribute] [Slug]
   | Login
   | Slots
   | Favorites FavoritesCommand
@@ -99,6 +102,7 @@ data Command
   | Checkout CheckoutCommand
   | Order OrderCommand
   | Suggestion SuggestionCommand
+  | Categories
   deriving stock (Show, Eq)
 
 favoritesAddParser :: Parser FavoritesCommand
@@ -176,8 +180,18 @@ searchAttributeParser =
       , flag [] [Vegetarian] (long "vegetarian" <> help "Filter only vegetarian products")
       ]
 
+slugsParser :: Parser [Slug]
+slugsParser =
+  many $
+    Slug
+      <$> strOption
+        ( long "category"
+            <> metavar "SLUG"
+            <> help "Filter search by given category slug - can be given mutliple times"
+        )
+
 searchParser :: Parser Command
-searchParser = Search <$> argument str (metavar "QUERY|EAN") <*> searchAttributeParser
+searchParser = Search <$> argument str (metavar "QUERY|EAN") <*> searchAttributeParser <*> slugsParser
 
 loginParser :: Parser Command
 loginParser = pure Login
@@ -338,6 +352,9 @@ commandParser =
             (progDesc "Show current checkout (no args), or use 'create'/'order' subcommands")
         )
       <> command
+        "categories"
+        (info (pure Categories) (progDesc "List available categories"))
+      <> command
         "orders"
         ( info
             orderParser
@@ -374,6 +391,7 @@ examples =
     , ""
     , "  korb search <QUERY|EAN>          Search products by name or EAN barcode (use * to browse all)"
     , "  korb search <Q> --organic        Filter by attribute (--organic, --regional, --vegan, --vegetarian)"
+    , "  korb search <Q> --category <SLUG> Filter by category slug (repeatable, from korb categories)"
     , ""
     , "  korb favorites                   Show all favorite products across all lists"
     , "  korb favorites search <QUERY>    Filter favorites by name (case-insensitive, substring match)"
@@ -397,6 +415,8 @@ examples =
     , ""
     , "  korb suggestion threshold <N>    Suggest N items to add to reach free pickup threshold."
     , "                                   Ranks by purchase frequency, excludes items already in basket."
+    , ""
+    , "  korb categories                   List all product categories (with subcategories)."
     , ""
     , "  korb ebons                       List digital receipts (eBons)."
     , "  korb ebons download <EBON_ID>    Download eBon PDF. --output FILE (default: ebon.pdf)"

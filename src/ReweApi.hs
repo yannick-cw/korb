@@ -22,6 +22,7 @@ module ReweApi (
   ebonReceipt,
   thresholdSuggestion,
   suggestionEngine,
+  getCategories,
 ) where
 
 import Auth.Types (AccessToken (..), Auth (..))
@@ -63,6 +64,7 @@ data ReweAuthedApi = ReweAuthedApi
   , deleteFavourite :: FavoriteListId -> ItemId -> IOE ApiError ()
   , getBaseket :: IOE ApiError (ReweResponse BasketResponse)
   , getSlots :: IOE ApiError (ReweResponse TimeslotsCheckoutResponse)
+  , getShopCategories :: IOE ApiError (ReweResponse CategoriesResponse)
   , addItemToBasket ::
       BasketId ->
       ListingId ->
@@ -125,18 +127,16 @@ mkReweAuthedClient (HttpClient{get, post, delete, patch, getBytes}) auth (Curren
             (url ("/favorites/" <> favListId <> "/lineitems/" <> itemId))
             mandatoryHeaders
             []
-      , getBaseket =
-          post (BasketReq True) (url "/baskets") mandatoryHeaders []
-      , getSlots =
-          get (url "/timeslots/checkout") mandatoryHeaders []
+      , getBaseket = post (BasketReq True) (url "/baskets") mandatoryHeaders []
+      , getSlots = get (url "/timeslots/checkout") mandatoryHeaders []
+      , getShopCategories = get (url "/shop-categories") mandatoryHeaders []
       , addItemToBasket = \(BasketId basketId) (ListingId listingId) qty version ->
           post
             (AddToBasketReq qty version True)
             (url ("/baskets/" <> basketId <> "/listings/" <> listingId))
             mandatoryHeaders
             []
-      , postCheckout = \basketId ->
-          post (CheckoutReq basketId False) (url "/checkouts") mandatoryHeaders []
+      , postCheckout = \basketId -> post (CheckoutReq basketId False) (url "/checkouts") mandatoryHeaders []
       , patchCheckoutTimeslot = \basketId (CheckoutId checkoutId) timeslotId ->
           patch
             (PatchTimeslotReq basketId timeslotId)
@@ -174,9 +174,12 @@ mkReweAuthedClient (HttpClient{get, post, delete, patch, getBytes}) auth (Curren
       , getPurchasedProducts = get (url "/purchased-products") mandatoryHeaders []
       }
 
-searchRewe :: RewePublicApi -> Text -> [SearchAttribute] -> IOE ApiError [Product]
-searchRewe RewePublicApi{search} query attributes = do
-  let filters = intercalate "&" ((\a -> "attribute=" <> attributeToText a) <$> attributes)
+searchRewe ::
+  RewePublicApi -> Text -> [SearchAttribute] -> [Slug] -> IOE ApiError [Product]
+searchRewe RewePublicApi{search} query attributes categories = do
+  let attributeFilters = (\a -> "attribute=" <> attributeToText a) <$> attributes
+  let categoryFilters = (\(Slug slug) -> "categorySlug=" <> slug) <$> categories
+  let filters = intercalate "&" (attributeFilters ++ categoryFilters)
   searchRes <- search [("query", query), ("filters", filters)]
   pure searchRes.data_.products.products
 
@@ -295,6 +298,10 @@ ebonReceipt ReweAuthedApi{getReceipt} ebonId filePath = do
   pdfBytes <- liftE $ getReceipt ebonId
   liftIOE (AppFileError . FileError) $ BS.writeFile filePath pdfBytes
   pure $ "Stored receipt to: " <> pack filePath
+
+getCategories :: ReweAuthedApi -> IOE ApiError [Category]
+getCategories ReweAuthedApi{getShopCategories} = do
+  (.data_.categories) <$> getShopCategories
 
 thresholdSuggestion ::
   ReweAuthedApi -> NumberOfSuggestions -> IOE ApiError SuggestionResponse

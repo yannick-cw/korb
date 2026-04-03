@@ -512,6 +512,27 @@ newtype EbonsResponse = EbonsResponse {getEbons :: EbonList}
 instance FromJSON EbonsResponse
 instance ToJSON EbonsResponse
 
+-- Categories (GET /shop-categories)
+
+newtype Slug = Slug Text deriving stock (Generic, Show, Eq)
+instance FromJSON Slug
+instance ToJSON Slug
+
+data Category = Category
+  { slug :: Slug
+  , name :: Maybe Text
+  , categoryTags :: Maybe [Text]
+  , childCategories :: Maybe [Category]
+  }
+  deriving stock (Generic, Show, Eq)
+instance FromJSON Category
+instance ToJSON Category
+
+newtype CategoriesResponse = CategoriesResponse {categories :: [Category]}
+  deriving stock (Generic, Show, Eq)
+instance FromJSON CategoriesResponse
+instance ToJSON CategoriesResponse
+
 -- Suggestion Engine
 
 data Suggestion = Suggestion {product :: Product, freq :: Int}

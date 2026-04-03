@@ -21,6 +21,7 @@ import ReweApi.Types (
   ProductId (..),
   Qty (..),
   SearchAttribute (..),
+  Slug (..),
   TimeslotId (..),
  )
 import Test.Hspec (Spec, describe, it)
@@ -47,9 +48,13 @@ renderCommand cmd =
     Store StoreShow -> ["store"]
     Store (StoreSearch (ZipCode z)) -> ["store", "search", z]
     Store (StoreSet (WwIdent w) (ZipCode z)) -> ["store", "set", w, z]
-    Search q attrs -> ["search", q] ++ (attrs >>= renderAttr)
+    Search q attrs cats ->
+      ["search", q]
+        ++ (renderAttr <$> attrs)
+        ++ concatMap (\(Slug c) -> ["--category", c]) cats
     Login -> ["login"]
     Slots -> ["timeslots"]
+    Categories -> ["categories"]
     Favorites FavoritesShow -> ["favorites"]
     Favorites (FavoritesFilter q) -> ["favorites", "search", q]
     Favorites (FavoritesAdd (ListingId l) (ProductId p)) -> ["favorites", "add", l, p]
@@ -68,19 +73,20 @@ renderCommand cmd =
     Order (GetOrder (OrderId o)) -> ["orders", "get", o]
     Suggestion (ThresholdSuggestion (NumberOfSuggestions n)) -> ["suggestion", "threshold", TIO.show n]
   where
-    renderAttr :: SearchAttribute -> [Text]
-    renderAttr Organic = ["--organic"]
-    renderAttr Regional = ["--regional"]
-    renderAttr Vegan = ["--vegan"]
-    renderAttr Vegetarian = ["--vegetarian"]
+    renderAttr :: SearchAttribute -> Text
+    renderAttr Organic = "--organic"
+    renderAttr Regional = "--regional"
+    renderAttr Vegan = "--vegan"
+    renderAttr Vegetarian = "--vegetarian"
 
 genCommand :: Gen Command
 genCommand =
   Gen.choice
     [ Store <$> genStoreCommand
-    , Search <$> genText <*> genSearchAttributes
+    , Search <$> genText <*> genSearchAttributes <*> genCategorySlugs
     , pure Login
     , pure Slots
+    , pure Categories
     , Favorites <$> genFavoritesCommand
     , Basket <$> genBasketCommand
     , Ebon <$> genEbonCommand
@@ -167,6 +173,9 @@ genZipCode = ZipCode <$> Gen.text (Range.singleton 5) Gen.digit
 
 genWwident :: Gen WwIdent
 genWwident = WwIdent <$> Gen.text (Range.linear 3 10) Gen.digit
+
+genCategorySlugs :: Gen [Slug]
+genCategorySlugs = Gen.list (Range.linear 0 5) (Slug <$> genText)
 
 genSearchAttributes :: Gen [SearchAttribute]
 genSearchAttributes = Gen.subsequence [Organic, Regional, Vegan, Vegetarian]

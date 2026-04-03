@@ -139,6 +139,7 @@ failingClient =
     , addFavourite = \_ _ _ -> throwE (ApiError "not implemented")
     , deleteFavourite = \_ _ -> throwE (ApiError "not implemented")
     , getBaseket = throwE (ApiError "not implemented")
+    , getShopCategories = throwE (ApiError "not implemented")
     , addItemToBasket = \_ _ _ _ -> throwE (ApiError "not implemented")
     , getSlots = throwE (ApiError "not implemented")
     , postCheckout = \_ -> throwE (ApiError "not implemented")

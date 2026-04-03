@@ -36,6 +36,7 @@ import ReweApi (
   favorites,
   favoritesAdd,
   favoritesDelete,
+  getCategories,
   getOneOrder,
   getOpenOrders,
   getOrderHistory,
@@ -77,7 +78,9 @@ run = do
     Login -> auth.login >>= printValue pretty
     needsCurrentStore ->
       liftE readSettings >>= \currentStore -> case needsCurrentStore of
-        Search query attributes -> liftE $ searchRewe (publicClient currentStore) query attributes >>= printValue pretty
+        Search query attributes categories ->
+          liftE $
+            searchRewe (publicClient currentStore) query attributes categories >>= printValue pretty
         needsAuth ->
           authedClient currentStore >>= \client ->
             case needsAuth of
@@ -97,6 +100,8 @@ run = do
                   favoritesDelete client itemId >>= printValue pretty
                 Slots ->
                   slots client >>= printValue pretty
+                Categories ->
+                  getCategories client >>= printValue pretty
                 Checkout (StartCheckout timeslot) ->
                   checkoutTimeslot client timeslot >>= printValue pretty
                 Checkout GetCheckout ->
