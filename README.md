@@ -10,6 +10,11 @@ The CLI is handwritten in Haskell, but designed to be a CLI mostly used by agent
 
 https://github.com/user-attachments/assets/308041f4-4b1f-4db4-9040-0e157247efea
 
+## // agentic workflow with UI
+
+![agentic_order](https://github.com/user-attachments/assets/ff0d7b91-2572-4ba0-9609-0dac313306b2)
+
+
 ## // My e2e flow
 
 My current E2E flow (I use claude to run korb) is as follows:
