@@ -96,7 +96,7 @@ library
         http-types,
         time,
         base64-bytestring,
-        ram,
+        memory,
         crypton,
         unix,
         filepath,
